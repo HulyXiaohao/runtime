@@ -50,7 +50,7 @@ static rtError_t SaveFuncCallDataForModelExecuteTask(TaskInfo * const taskInfo,
     ModelExecuteTaskInfo *modelExecuteTaskInfo = &(taskInfo->u.modelExecuteTaskInfo);
 
     uint8_t *dstMem =
-        reinterpret_cast<uint8_t *>(modelExecuteTaskInfo->model->GetFuncCallHostMem()) + sizeof(RtStarsModelExeFuncCall);
+        RtPtrToPtr<uint8_t *>(modelExecuteTaskInfo->model->GetFuncCallHostMem()) + sizeof(RtStarsModelExeFuncCall);
 
     rtError_t ret = memcpy_s(dstMem, (headSqArrMax * sizeof(uint64_t)),
                              headSq.data(), (headSqArrMax * sizeof(uint64_t)));
@@ -281,13 +281,13 @@ static rtError_t ConstructFuncCallPara(TaskInfo * const taskInfo, rtStarsModelEx
 static void PrintDebugInfoForModelExecute(const Model *model)
 {
     if (CheckLogLevel(static_cast<int32_t>(RUNTIME), DLOG_DEBUG) == 1) {
-        const uint32_t *const cmdF = reinterpret_cast<const uint32_t *>(model->GetFuncCallHostMem());
+        const uint32_t *const cmdF = RtPtrToPtr<const uint32_t *>(model->GetFuncCallHostMem());
         for (size_t i = 0UL; i < (sizeof(RtStarsModelExeFuncCall) / sizeof(uint32_t)); i++) {
             RT_LOG(RT_LOG_DEBUG, "model execute before h2d instr[%zu]=0x%08x", i, *(cmdF + i));
         }
 
-        const uint64_t *const cmdS = reinterpret_cast<const uint64_t *>(
-            reinterpret_cast<uint8_t *>(model->GetFuncCallHostMem()) + sizeof(RtStarsModelExeFuncCall));
+        const uint64_t *const cmdS = RtPtrToPtr<const uint64_t *>(
+            RtPtrToPtr<uint8_t *>(model->GetFuncCallHostMem()) + sizeof(RtStarsModelExeFuncCall));
         for (size_t i = 0UL; i < ((model->GetFunCallMemSize() - sizeof(RtStarsModelExeFuncCall)) / sizeof(uint64_t));
              i++) {
             RT_LOG(RT_LOG_DEBUG, "model execute before h2d sq data[%zu]=%#" PRIx64, i, *(cmdS + i));

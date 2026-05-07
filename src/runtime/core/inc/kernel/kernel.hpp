@@ -417,7 +417,7 @@ public:
         funcEntryType_ = type;
     }
 
-    KernelFunctionEntryType GetFunctionEntryType(void)
+    KernelFunctionEntryType GetFunctionEntryType(void) const
     {
         return funcEntryType_;
     }

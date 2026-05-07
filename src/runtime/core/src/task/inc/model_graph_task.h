@@ -10,6 +10,7 @@
 #ifndef RUNTIME_MODEL_GRAPH_TASK_H
 #define RUNTIME_MODEL_GRAPH_TASK_H
 
+#include "hwts.hpp"
 #include "task_info.hpp"
 
 namespace cce {

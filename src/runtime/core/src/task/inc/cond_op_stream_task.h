@@ -10,6 +10,7 @@
 #ifndef RUNTIME_COND_OP_STREAM_TASK_H
 #define RUNTIME_COND_OP_STREAM_TASK_H
 
+#include "hwts.hpp"
 #include "task_info.hpp"
 
 namespace cce {
