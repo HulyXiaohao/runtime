@@ -728,6 +728,17 @@ typedef enum {
     DEV_CLOSE_TYPE_MAX,
 } DEV_CLOSE_TYPE;
 
+typedef enum {
+    HAL_REPAIR_FAULT_TYPE_UBMEM = 5,
+    HAL_REPAIR_FAULT_TYPE_MAX,
+} halRepairFaultType;
+
+typedef struct hal_repair_fault_info {
+    halRepairFaultType fault_type;
+    uint32_t payload_size;
+    uint8_t *payload;
+} halRepairFaultInfo;
+
 /**
 * @ingroup driver
 * @brief This interface is used to invoke the unified device open interfaces of driver components.
