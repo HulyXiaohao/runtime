@@ -114,11 +114,19 @@ RuntimeProfApiData &Profiler::GetProfApiData() const
     return ProfilerGetProfApiData();
 }
 
-void Profiler::SetProfApiData(const RuntimeProfApiData profiler) const
+ProfApiContext *Profiler::PushProfApiContext() const
 {
-    RuntimeProfApiData &srcProfilerData = ProfilerGetProfApiData();
-    srcProfilerData = profiler;
-    return;
+    return ProfilerPushProfApiContext();
+}
+
+bool Profiler::PopProfApiContext(ProfApiContext &profApiContext) const
+{
+    return ProfilerPopProfApiContext(profApiContext);
+}
+
+ProfApiContext *Profiler::GetTopProfApiContext() const
+{
+    return ProfilerGetTopProfApiContext();
 }
 
 TaskTrackInfo &Profiler::GetProfTaskTrackData(void) const
@@ -128,9 +136,6 @@ TaskTrackInfo &Profiler::GetProfTaskTrackData(void) const
 
 void Profiler::ReportProfApi(const uint32_t devId, RuntimeProfApiData &profApiData) const
 {
-    if (!GetApiProfEnable()) {
-        return;
-    }
     ProfilingAgent::Instance().ReportProfApi(devId, profApiData);
 }
 
@@ -175,10 +180,10 @@ void Profiler::ModifyTrackData(TaskInfo *const taskInfo, const uint32_t devId, R
     trackData->compactInfo.level = MSPROF_REPORT_RUNTIME_LEVEL; 
     trackData->compactInfo.type = RT_PROFILE_TYPE_TASK_TRACK;  // RT_PROFILE_TYPE_TASK_TRACK regitered in init 
 
-    RuntimeProfApiData &profApiData = GetProfApiData();
-    if (apiProfEnable_ && profApiData.entryTime != 0) {
+    ProfApiContext *profApiContext = GetTopProfApiContext();
+    if ((profApiContext != nullptr) && profApiContext->needReport && (profApiContext->apiData.entryTime != 0U)) {
         trackData->compactInfo.timeStamp =
-            profApiData.entryTime + 1;  // trackData的时间戳只要在api的begin和end的范围之内就是合理的
+            profApiContext->apiData.entryTime + 1;  // trackData的时间戳只要在api的begin和end的范围之内就是合理的
     } else {
         trackData->compactInfo.timeStamp = MsprofSysCycleTime();
     }
@@ -268,7 +273,8 @@ void Profiler::ReportTaskTrack(TaskInfo *const taskInfo, const uint32_t devId) c
     ModifyTrackData(taskInfo, devId, trackData);
     trackMngInfo.taskNum++;
 
-    if (!GetApiProfEnable()) {  // if not open api profiling, will send taskTrack separately
+    ProfApiContext *profApiContext = GetTopProfApiContext();
+    if ((profApiContext == nullptr) || !profApiContext->needReport) {  // if not open api profiling, will send taskTrack separately
         const int32_t ret = ReportCompactInfo(trackData);
         if (ret != MSPROF_ERROR_NONE) {
             RT_LOG_CALL_MSG(ERR_MODULE_PROFILE, "Profiling reporter report task_track failed, ret=%d.", ret);

@@ -34,6 +34,7 @@
 #include "task_res_da.hpp"
 #include "stream_sqcq_manage.hpp"
 #include "aix_c.hpp"
+#include "rt_unwrap.h"
 #undef private
 #undef protected
 
@@ -726,7 +727,7 @@ TEST_F(DavidSnapshotTest, RecordOpAddrAndSize_EmptyTaskList)
     rtError_t error = rtStreamCreateWithFlags(&streamHandle, 0U, RT_STREAM_PERSISTENT);
     ASSERT_EQ(error, RT_ERROR_NONE);
 
-    Stream* stream = static_cast<Stream*>(streamHandle);
+    Stream* stream = rt_ut::UnwrapOrNull<Stream>(streamHandle);
 
     stream->delayRecycleTaskid_.clear();
 

@@ -51,6 +51,35 @@ int32_t MsprofReporterCallbackStub(uint32_t moduleId, uint32_t type, void *data,
     std::cout << "MsprofCtrlCallbackStub moduleId=" << moduleId << ", type=" << type << ", len=" << len << std::endl;
     return MSPROF_ERROR_NONE;
 }
+uint64_t g_streamTimestamp = 0;
+uint32_t g_reportedApiTypes[4] = {};
+uint32_t g_reportedApiTypeNum = 0;
+
+void ResetReportedApiTypes()
+{
+    errno_t rc = memset_s(g_reportedApiTypes, sizeof(g_reportedApiTypes), 0, sizeof(g_reportedApiTypes));
+    EXPECT_EQ(rc, EOK);
+    g_reportedApiTypeNum = 0;
+}
+
+int32_t MsprofReportApiOrderStub(uint32_t nonPersistantFlag, const MsprofApi *api)
+{
+    UNUSED(nonPersistantFlag);
+    if ((api != nullptr) && (g_reportedApiTypeNum < (sizeof(g_reportedApiTypes) / sizeof(g_reportedApiTypes[0])))) {
+        g_reportedApiTypes[g_reportedApiTypeNum++] = api->type;
+    }
+    return MSPROF_ERROR_NONE;
+}
+
+void ClearApiProfContextStack(Profiler *profiler)
+{
+    ProfApiContext profApiContext{};
+    while (profiler->PopProfApiContext(profApiContext)) {
+    }
+    profiler->GetProfApiData() = RuntimeProfApiData{};
+    profiler->GetProfTaskTrackData() = TaskTrackInfo{};
+}
+
 void SetEnvVarOn()
 {
     setenv(ENV_VAR_NAME, PROF_SWITCH_ON, 1);
@@ -150,8 +179,6 @@ void SpiltReportPcs(void* buf, uint8_t len, rtTaskReport_t* rptPcs, uint8_t* pcs
     }
 }
 
-uint64_t g_streamTimestamp = 0;
-
 TEST_F(ProfilerTest, SketchOneProcess)
 {
     // MemcpyAsyncTask memTask;
@@ -204,13 +231,71 @@ TEST_F(ProfilerTest, MemCpyAsync)
     profiler->SetTrackProfEnable(true);
     TaskInfo memTask = {};
     memTask.type = TS_TASK_TYPE_MEMCPY;
+    profiler->apiProfileDecorator_->CallApiBegin(RT_PROF_API_MEMCPY_ASYNC);
     RuntimeProfApiData &profApiData = profiler->GetProfApiData();
     profApiData.entryTime = 1;
     // task track
     profiler->ReportTaskTrack(&memTask, 1);
     RuntimeProfTrackData trackData = profiler->GetProfTaskTrackData().trackBuff[0];
     EXPECT_EQ(trackData.compactInfo.timeStamp, 2);
+    profiler->GetProfTaskTrackData().taskNum = 0;
+    profiler->apiProfileDecorator_->CallApiEnd(RT_ERROR_NONE, 0);
     rt->isHaveDevice_ = tmp;
+}
+
+TEST_F(ProfilerTest, ApiProfileNestedContextLifo)
+{
+    Runtime *rt = ((Runtime *)Runtime::Instance());
+    profiler = rt->profiler_;
+    ClearApiProfContextStack(profiler);
+    ResetReportedApiTypes();
+    MOCKER(MsprofReportApi).stubs().will(invoke(MsprofReportApiOrderStub));
+
+    profiler->SetApiProfEnable(true);
+    profiler->apiProfileDecorator_->CallApiBegin(RT_PROF_API_STREAM_DESTROY);
+    EXPECT_EQ(profiler->GetProfApiData().profileType, RT_PROF_API_STREAM_DESTROY);
+
+    profiler->apiProfileDecorator_->CallApiBegin(RT_PROF_API_DEV_FREE);
+    EXPECT_EQ(profiler->GetProfApiData().profileType, RT_PROF_API_DEV_FREE);
+
+    profiler->apiProfileDecorator_->CallApiEnd(RT_ERROR_NONE, 0);
+    EXPECT_EQ(profiler->GetProfApiData().profileType, RT_PROF_API_STREAM_DESTROY);
+
+    profiler->apiProfileDecorator_->CallApiEnd(RT_ERROR_NONE, 0);
+    profiler->SetApiProfEnable(false);
+
+    ASSERT_EQ(g_reportedApiTypeNum, 2U);
+    EXPECT_EQ(g_reportedApiTypes[0], RT_PROF_API_DEV_FREE + RT_PROFILE_TYPE_API_BEGIN);
+    EXPECT_EQ(g_reportedApiTypes[1], RT_PROF_API_STREAM_DESTROY + RT_PROFILE_TYPE_API_BEGIN);
+    ClearApiProfContextStack(profiler);
+}
+
+TEST_F(ProfilerTest, ApiProfilePlaceholderFramePreserveOuterContext)
+{
+    Runtime *rt = ((Runtime *)Runtime::Instance());
+    profiler = rt->profiler_;
+    ClearApiProfContextStack(profiler);
+    ResetReportedApiTypes();
+    MOCKER(MsprofReportApi).stubs().will(invoke(MsprofReportApiOrderStub));
+
+    profiler->SetApiProfEnable(true);
+    profiler->apiProfileDecorator_->CallApiBegin(RT_PROF_API_STREAM_DESTROY);
+    profiler->GetProfTaskTrackData().taskNum = 3U;
+
+    profiler->SetApiProfEnable(false);
+    profiler->apiProfileDecorator_->CallApiBegin(RT_PROF_API_DEV_FREE);
+    profiler->GetProfTaskTrackData().taskNum = 4U;
+    profiler->apiProfileDecorator_->CallApiEnd(RT_ERROR_NONE, 0);
+
+    EXPECT_EQ(profiler->GetProfApiData().profileType, RT_PROF_API_STREAM_DESTROY);
+    EXPECT_EQ(profiler->GetProfTaskTrackData().taskNum, 3U);
+
+    profiler->GetProfTaskTrackData().taskNum = 0U;
+    profiler->apiProfileDecorator_->CallApiEnd(RT_ERROR_NONE, 0);
+
+    ASSERT_EQ(g_reportedApiTypeNum, 1U);
+    EXPECT_EQ(g_reportedApiTypes[0], RT_PROF_API_STREAM_DESTROY + RT_PROFILE_TYPE_API_BEGIN);
+    ClearApiProfContextStack(profiler);
 }
 
 TEST_F(ProfilerTest, OnlyTaskTrack)

@@ -8,6 +8,8 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
+#include <vector>
+
 #include "profiling_agent.hpp"
 #include "api.hpp"
 #include "base.hpp"
@@ -15,6 +17,12 @@
 
 namespace cce {
 namespace runtime {
+namespace {
+constexpr size_t PROF_API_STACK_RESERVE_SIZE = 8U;
+thread_local std::vector<ProfApiContext> g_apiProfStack{};
+thread_local ProfApiContext g_fallbackProfApiContext{};
+}
+
 ProfilingAgent &ProfilingAgent::Instance()
 {
     static ProfilingAgent insAgent;
@@ -371,16 +379,45 @@ void ProfilingAgent::ReportProfApi(const uint32_t devId, RuntimeProfApiData &pro
     }
 }
 
+ProfApiContext *ProfilerPushProfApiContext(void)
+{
+    if (g_apiProfStack.capacity() == 0U) {
+        g_apiProfStack.reserve(PROF_API_STACK_RESERVE_SIZE);
+    }
+    g_apiProfStack.emplace_back();
+    return &g_apiProfStack.back();
+}
+
+bool ProfilerPopProfApiContext(ProfApiContext &profApiContext)
+{
+    if (g_apiProfStack.empty()) {
+        return false;
+    }
+
+    profApiContext = g_apiProfStack.back();
+    g_apiProfStack.pop_back();
+    return true;
+}
+
+ProfApiContext *ProfilerGetTopProfApiContext(void)
+{
+    if (g_apiProfStack.empty()) {
+        return nullptr;
+    }
+
+    return &g_apiProfStack.back();
+}
+
 RuntimeProfApiData &ProfilerGetProfApiData(void)
 {
-    static thread_local RuntimeProfApiData profApiData{};
-    return profApiData;
+    ProfApiContext *profApiContext = ProfilerGetTopProfApiContext();
+    return (profApiContext == nullptr) ? g_fallbackProfApiContext.apiData : profApiContext->apiData;
 }
 
 TaskTrackInfo &ProfilerGetProfTaskTrackData(void)
 {
-    static thread_local TaskTrackInfo taskInfo{};
-    return taskInfo;
+    ProfApiContext *profApiContext = ProfilerGetTopProfApiContext();
+    return (profApiContext == nullptr) ? g_fallbackProfApiContext.taskTrackInfo : profApiContext->taskTrackInfo;
 }
 }
 }

@@ -54,6 +54,9 @@ private:
 private:
     MsprofReporterCallback profReporterCallback_;
 };
+ProfApiContext *ProfilerPushProfApiContext(void);
+bool ProfilerPopProfApiContext(ProfApiContext &profApiContext);
+ProfApiContext *ProfilerGetTopProfApiContext(void);
 RuntimeProfApiData &ProfilerGetProfApiData(void);
 TaskTrackInfo &ProfilerGetProfTaskTrackData(void);
 }

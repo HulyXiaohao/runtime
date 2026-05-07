@@ -54,7 +54,9 @@ public:
     }
     
     RuntimeProfApiData &GetProfApiData() const;
-    void SetProfApiData(const RuntimeProfApiData profiler) const;
+    ProfApiContext *PushProfApiContext() const;
+    bool PopProfApiContext(ProfApiContext &profApiContext) const;
+    ProfApiContext *GetTopProfApiContext() const;
     TaskTrackInfo& GetProfTaskTrackData(void) const;
     void ReportProfApi(const uint32_t devId, RuntimeProfApiData &profApiData) const;
     void ReportTaskTrack(TaskInfo * const taskInfo, const uint32_t devId) const;

@@ -316,6 +316,12 @@ struct TaskTrackInfo {
     uint32_t taskNum = 0U;
 };
 
+struct ProfApiContext {
+    bool needReport = false;
+    RuntimeProfApiData apiData{};
+    TaskTrackInfo taskTrackInfo{};
+};
+
 typedef enum tagTsTaskState {
     TASK_STATE_WAIT = 1,
     TASK_STATE_RUN = 2,
