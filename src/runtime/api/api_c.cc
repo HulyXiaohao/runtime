@@ -24,7 +24,6 @@
 #include "prof_map_ge_model_device.hpp"
 #include "runtime.hpp"
 #include "thread_local_container.hpp"
-#include "toolchain/prof_api.h"
 #include "prof_acl_api.h"
 #include "heterogenous.h"
 #include "runtime_keeper.h"
