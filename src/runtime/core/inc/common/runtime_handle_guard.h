@@ -34,7 +34,7 @@ struct RtMagicTraits;
 template <>                                 \
 struct RtMagicTraits<Type> {                \
     static constexpr uint64_t value = MagicValue; \
-};
+}
 
 class Model;
 class Label;
@@ -44,12 +44,12 @@ class Notify;
 class CountNotify;
 
 // Register all magic constants
-REGISTER_RT_MAGIC(Model,     RT_MODEL_MAGIC)
-REGISTER_RT_MAGIC(Label,     RT_LABEL_MAGIC)
-REGISTER_RT_MAGIC(Stream,    RT_STREAM_MAGIC)
-REGISTER_RT_MAGIC(Event,     RT_EVENT_MAGIC)
-REGISTER_RT_MAGIC(Notify,    RT_NOTIFY_MAGIC)
-REGISTER_RT_MAGIC(CountNotify, RT_CNTNOTIFY_MAGIC)
+REGISTER_RT_MAGIC(Model,     RT_MODEL_MAGIC);
+REGISTER_RT_MAGIC(Label,     RT_LABEL_MAGIC);
+REGISTER_RT_MAGIC(Stream,    RT_STREAM_MAGIC);
+REGISTER_RT_MAGIC(Event,     RT_EVENT_MAGIC);
+REGISTER_RT_MAGIC(Notify,    RT_NOTIFY_MAGIC);
+REGISTER_RT_MAGIC(CountNotify, RT_CNTNOTIFY_MAGIC);
 
 /**
  * @ingroup
