@@ -191,6 +191,8 @@ target_compile_options(profapi_lite_share PRIVATE
     -Wextra
     -Wfloat-equal
     -fno-common
+    $<$<CONFIG:Release>:-D_FORTIFY_SOURCE=2 -Os>
+    $<$<CONFIG:Debug>:-D_FORTIFY_SOURCE=2 -Os>
 )
 
 target_link_options(profapi_lite_share PRIVATE
