@@ -562,7 +562,7 @@ void ErrorManager::AssembleInnerErrorMessage(const std::vector<ErrorItem> &error
 
     current_code_print = "      ";
     if (!print_traceback_once) {
-      err_stream << "        TraceBack (most recent call last):" << std::endl;
+      err_stream << "TraceBack (most recent call last):" << std::endl;
       print_traceback_once = true;
     }
   }
@@ -599,7 +599,7 @@ std::string ErrorManager::GetErrorMessage() {
         continue;
       }
       if (!print_traceback_once) {
-        err_stream << "        TraceBack (most recent call last):" << std::endl;
+        err_stream << "TraceBack (most recent call last):" << std::endl;
         print_traceback_once = true;
       }
       err_stream << "        " << item.error_message << std::endl;
