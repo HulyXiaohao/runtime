@@ -709,7 +709,7 @@ private:
     rtError_t CheckArgs(const rtArgsEx_t * const argsInfo) const;
     rtError_t CheckCfg(const rtTaskCfgInfo_t * const cfgInfo) const;
     rtError_t CheckNonArgsHandle(const RtArgsHandle * const argsHandle) const;
-    rtError_t CheckArgsWithType(const RtArgsWithType * const argsWithType) const;
+    rtError_t CheckArgsWithType(const Kernel *kernel, const RtArgsWithType * const argsWithType) const;
     rtError_t CheckDeviceIdIsValid(const int32_t devId) const;
     rtError_t MemCopy2DCheckParam(const void * const dst, const uint64_t dstPitch, const void * const src,
         const uint64_t srcPitch, const uint64_t width, const uint64_t height, const rtMemcpyKind_t kind) const;
@@ -737,8 +737,10 @@ private:
     rtError_t CacheLastTaskExtendInfo(const char* const extendInfoPtr, const size_t infoSize) override;
     rtError_t FunctionGetAttribute(rtFuncHandle funcHandle, rtFuncAttribute attrType, int64_t *attrValue) override;
     rtError_t FunctionGetBinary(const Kernel *const funcHandle, Program **const binHandle) override;
+    rtError_t FunctionGetParamCount(const Kernel *funcHandle, size_t *paramCount) override;
+    rtError_t FunctionGetParamInfo(const Kernel *funcHandle, size_t paramIndex,
+                                   size_t *paramOffset, size_t *paramSize) override;
 
-    // task
     rtError_t TaskGetParams(rtTask_t task, rtTaskParams* const params) override;
     rtError_t TaskSetParams(rtTask_t task, rtTaskParams* const params) override;
     rtError_t KernelTaskGetAttribute(rtTask_t task, rtLaunchKernelAttrId attrId, rtLaunchKernelAttrVal_t *attrValue) override;

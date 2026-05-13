@@ -11,6 +11,7 @@
 #define RUNTIME_PARAM_CONVERTOR_HPP
 
 #include "base.hpp"
+#include "kernel.hpp"
 
 namespace cce {
 namespace runtime {
@@ -30,6 +31,7 @@ rtError_t ConvertCpuArgsByArgsHandle(rtCpuKernelArgs_t &oldArgs, const RtArgsHan
 uint64_t ConvertTimeoutToInner(uint64_t timeout);
 uint64_t ConvertAicpuTimeout(const rtAicpuArgsEx_t * const argsInfo, const TaskCfg *taskCfg,
     const uint32_t flag);
+rtError_t ConvertArgsArrayToArgsEx(rtArgsEx_t &argsEx, const Kernel *kernel, void **argsArray);
 }
 }
 

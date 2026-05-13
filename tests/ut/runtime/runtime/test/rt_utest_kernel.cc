@@ -14,7 +14,11 @@
 #include "program.hpp"
 #undef private
 #include "kernel.hpp"
+#include "kernel_utils.hpp"
 #include "thread_local_container.hpp"
+#include "para_convertor.hpp"
+#include "args_buffer_guard.hpp"
+#include "args_handle_allocator.hpp"
 
 using namespace testing;
 using namespace cce::runtime;
@@ -248,4 +252,465 @@ TEST_F(KernelTest, kernel_info_extern_lookup)
     const char_t * const stubFunc = "test";
     const Kernel *tempKernel = table.KernelInfoExtLookup(stubFunc);
     EXPECT_EQ(tempKernel, nullptr);
+}
+
+TEST_F(KernelTest, Kernel_ParamInfo_GetParamInfo_Success)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[2]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 16;
+    paramInfos[1].info.offset = 16;
+    paramInfos[1].info.size = 32;
+
+    kernel->SetHasParamSummary(true);
+    kernel->SetParamCount(2);
+    kernel->SetParamInfos(paramInfos);
+
+    uint32_t offset = 0;
+    uint32_t size = 0;
+    rtError_t error = kernel->GetParamInfo(0, &offset, &size);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(offset, 0);
+    EXPECT_EQ(size, 16);
+
+    error = kernel->GetParamInfo(1, &offset, &size);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(offset, 16);
+    EXPECT_EQ(size, 32);
+
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_ParamInfo_GetParamInfo_InvalidIndex)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[1]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 16;
+
+    kernel->SetHasParamSummary(true);
+    kernel->SetParamCount(1);
+    kernel->SetParamInfos(paramInfos);
+
+    uint32_t offset = 0;
+    uint32_t size = 0;
+    rtError_t error = kernel->GetParamInfo(2, &offset, &size);
+    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
+
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_ParamInfo_GetParamInfo_NoParamInfo)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+
+    kernel->SetHasParamSummary(false);
+    kernel->SetParamCount(0);
+
+    uint32_t offset = 0;
+    uint32_t size = 0;
+    rtError_t error = kernel->GetParamInfo(0, &offset, &size);
+    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
+
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_ParamInfo_GetParamInfo_NullptrParamInfos)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+
+    kernel->SetHasParamSummary(true);
+    kernel->SetParamCount(1);
+    kernel->SetParamInfos(std::shared_ptr<ElfParamInfo[]>());
+
+    uint32_t offset = 0;
+    uint32_t size = 0;
+    rtError_t error = kernel->GetParamInfo(0, &offset, &size);
+    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
+
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_ParamInfo_GetParamInfo_NullptrOutput)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[1]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 16;
+
+    kernel->SetHasParamSummary(true);
+    kernel->SetParamCount(1);
+    kernel->SetParamInfos(paramInfos);
+
+    rtError_t error = kernel->GetParamInfo(0, nullptr, nullptr);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+
+    uint32_t offset = 0;
+    error = kernel->GetParamInfo(0, &offset, nullptr);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(offset, 0);
+
+    uint32_t size = 0;
+    error = kernel->GetParamInfo(0, nullptr, &size);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(size, 16);
+
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_ParamInfo_CopyParamsToBuffer_Success)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[2]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 16;
+    paramInfos[1].info.offset = 16;
+    paramInfos[1].info.size = 32;
+
+    kernel->SetHasParamSummary(true);
+    kernel->SetParamCount(2);
+    kernel->SetParamInfos(paramInfos);
+
+    char src1[16] = {0};
+    char src2[32] = {0};
+    void *argsArray[2] = {src1, src2};
+    char dest[48] = {0};
+
+    rtError_t error = CopyKernelParamsToBuffer(kernel, argsArray, dest);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_ParamInfo_CopyParamsToBuffer_GetParamInfoFailure)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+
+    kernel->SetHasParamSummary(false);
+    kernel->SetParamCount(1);
+
+    char src[16] = {0};
+    void *argsArray[1] = {src};
+    char dest[16] = {0};
+
+    rtError_t error = CopyKernelParamsToBuffer(kernel, argsArray, dest);
+    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
+
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_ParamInfo_CopyParamsToBuffer_MemcpyFailure)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[1]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 16;
+
+    kernel->SetHasParamSummary(true);
+    kernel->SetParamCount(1);
+    kernel->SetParamInfos(paramInfos);
+
+    char src[16] = {0};
+    void *argsArray[1] = {src};
+    char dest[16] = {0};
+
+    MOCKER(memcpy_s).stubs().will(returnValue(1));
+    rtError_t error = CopyKernelParamsToBuffer(kernel, argsArray, dest);
+    EXPECT_EQ(error, RT_ERROR_SEC_HANDLE);
+
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_ParamInfo_SetAndGetParamTotalSize)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+
+    kernel->SetParamTotalSize(128);
+    uint64_t size = kernel->GetParamTotalSize();
+    EXPECT_EQ(size, 128);
+
+    kernel->SetParamTotalSize(256);
+    size = kernel->GetParamTotalSize();
+    EXPECT_EQ(size, 256);
+
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_ParamInfo_SetAndGetParamCount)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+
+    kernel->SetParamCount(5);
+    uint32_t count = kernel->GetParamCount();
+    EXPECT_EQ(count, 5);
+
+    kernel->SetParamCount(10);
+    count = kernel->GetParamCount();
+    EXPECT_EQ(count, 10);
+
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_ParamInfo_SetAndGetHasParamSummary)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+
+    kernel->SetHasParamSummary(true);
+    bool hasInfo = kernel->HasParamSummary();
+    EXPECT_TRUE(hasInfo);
+
+    kernel->SetHasParamSummary(false);
+    hasInfo = kernel->HasParamSummary();
+    EXPECT_FALSE(hasInfo);
+
+    delete kernel;
+}
+
+// ConvertArgsArrayToArgsEx tests
+TEST(ParaConvertorTest, ConvertArgsArrayToArgsEx_ZeroSize)
+{
+    PlainProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    Kernel kernel("test", 0ULL, &program, RT_KERNEL_ATTR_TYPE_AICORE, 10);
+    kernel.SetParamTotalSize(0);
+
+    void *argsArray[2] = {(void*)0x10, (void*)0x20};
+    rtArgsEx_t argsEx = {};
+
+    rtError_t error = ConvertArgsArrayToArgsEx(argsEx, &kernel, argsArray);
+
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(argsEx.args, nullptr);
+    EXPECT_EQ(argsEx.argsSize, 0U);
+    EXPECT_EQ(argsEx.isNoNeedH2DCopy, 1U);
+}
+
+TEST(ParaConvertorTest, ConvertArgsArrayToArgsEx_CopyParamsFail)
+{
+    PlainProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    Kernel kernel("test", 0ULL, &program, RT_KERNEL_ATTR_TYPE_AICORE, 10);
+    kernel.SetParamTotalSize(48);
+    kernel.SetHasParamSummary(true);
+    kernel.SetParamCount(2);
+
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[2]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 16;
+    paramInfos[1].info.offset = 16;
+    paramInfos[1].info.size = 32;
+    kernel.SetParamInfos(paramInfos);
+
+    char src[16] = {0};
+    void *argsArray[2] = {src, nullptr};  // argsArray[1]为nullptr会导致CopyParams失败
+    
+    rtArgsEx_t argsEx = {};
+
+    rtError_t error = ConvertArgsArrayToArgsEx(argsEx, &kernel, argsArray);
+
+    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
+}
+
+TEST(ParaConvertorTest, ConvertArgsArrayToArgsEx_Success)
+{
+    PlainProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    Kernel kernel("test", 0ULL, &program, RT_KERNEL_ATTR_TYPE_AICORE, 10);
+    kernel.SetParamTotalSize(48);
+    kernel.SetHasParamSummary(true);
+    kernel.SetParamCount(2);
+
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[2]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 16;
+    paramInfos[1].info.offset = 16;
+    paramInfos[1].info.size = 32;
+    kernel.SetParamInfos(paramInfos);
+
+    char src1[16] = {1};
+    char src2[32] = {2};
+    void *argsArray[2] = {src1, src2};
+    rtArgsEx_t argsEx = {};
+
+    rtError_t error = ConvertArgsArrayToArgsEx(argsEx, &kernel, argsArray);
+
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_NE(argsEx.args, nullptr);
+    EXPECT_EQ(argsEx.argsSize, 48U);
+    EXPECT_EQ(argsEx.isNoNeedH2DCopy, 0U);
+}
+
+// ArgsBufferGuard tests
+TEST(ArgsBufferGuardTest, FirstAlloc)
+{
+    ArgsBufferGuard guard;
+    EXPECT_EQ(guard.buffer_, nullptr);
+
+    void *buffer = guard.EnsureCapacity(1024);
+
+    EXPECT_NE(buffer, nullptr);
+    EXPECT_EQ(guard.size_, 4096ULL);
+}
+
+TEST(ArgsBufferGuardTest, BufferEnough)
+{
+    ArgsBufferGuard guard;
+    guard.EnsureCapacity(2048);
+
+    void *buffer1 = guard.buffer_;
+    void *buffer2 = guard.EnsureCapacity(1024);
+
+    EXPECT_EQ(buffer2, buffer1);
+    EXPECT_EQ(guard.size_, 4096ULL);
+}
+
+TEST(ArgsBufferGuardTest, ReallocNeeded)
+{
+    ArgsBufferGuard guard;
+    guard.EnsureCapacity(1024);  // size_=4096
+
+    void *oldBuffer = guard.buffer_;
+    uint64_t oldSize = guard.size_;
+    
+    void *newBuffer = guard.EnsureCapacity(4096 * 2);  // request 8192 > 4096
+
+    EXPECT_NE(newBuffer, nullptr);
+    EXPECT_EQ(guard.size_, 8192ULL);  // 验证size确实更新了
+    // 如果size更新了，那么buffer一定重新分配了
+}
+
+TEST(ArgsBufferGuardTest, MallocFail)
+{
+    ArgsBufferGuard guard;
+    MOCKER(malloc).stubs().will(returnValue((void*)nullptr));
+    
+    void *buffer = guard.EnsureCapacity(1024);
+    
+    EXPECT_EQ(buffer, nullptr);
+}
+
+TEST_F(KernelTest, Kernel_GetParamInfo_Success)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+    kernel->SetParamCount(3);
+    kernel->SetHasParamSummary(true);
+    
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[3]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 16;
+    paramInfos[1].info.offset = 16;
+    paramInfos[1].info.size = 32;
+    paramInfos[2].info.offset = 48;
+    paramInfos[2].info.size = 64;
+    kernel->SetParamInfos(paramInfos);
+    
+    uint32_t paramOffset = 0;
+    uint32_t paramSize = 0;
+    
+    rtError_t error = kernel->GetParamInfo(0, &paramOffset, &paramSize);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(paramOffset, 0U);
+    EXPECT_EQ(paramSize, 16U);
+    
+    error = kernel->GetParamInfo(1, &paramOffset, &paramSize);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(paramOffset, 16U);
+    EXPECT_EQ(paramSize, 32U);
+    
+    error = kernel->GetParamInfo(2, &paramOffset, &paramSize);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(paramOffset, 48U);
+    EXPECT_EQ(paramSize, 64U);
+    
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_GetParamInfo_NoParamSummary)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+    kernel->SetParamCount(3);
+    kernel->SetHasParamSummary(false);
+    
+    uint32_t paramOffset = 0;
+    uint32_t paramSize = 0;
+    
+    rtError_t error = kernel->GetParamInfo(0, &paramOffset, &paramSize);
+    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
+    
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_GetParamInfo_IndexOutOfRange)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+    kernel->SetParamCount(2);
+    kernel->SetHasParamSummary(true);
+    
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[2]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 16;
+    paramInfos[1].info.offset = 16;
+    paramInfos[1].info.size = 32;
+    kernel->SetParamInfos(paramInfos);
+    
+    uint32_t paramOffset = 0;
+    uint32_t paramSize = 0;
+    
+    rtError_t error = kernel->GetParamInfo(5, &paramOffset, &paramSize);
+    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
+    
+    delete kernel;
+}
+
+TEST_F(KernelTest, Kernel_GetParamInfo_NullParamInfos)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    
+    Kernel *kernel = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+    kernel->SetParamCount(2);
+    kernel->SetHasParamSummary(true);
+    kernel->SetParamInfos(std::shared_ptr<ElfParamInfo[]>()); // nullptr
+    
+    uint32_t paramOffset = 0;
+    uint32_t paramSize = 0;
+    
+    rtError_t error = kernel->GetParamInfo(0, &paramOffset, &paramSize);
+    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
+    
+    delete kernel;
 }

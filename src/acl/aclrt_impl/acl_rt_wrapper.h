@@ -261,6 +261,7 @@
     _(aclError, aclrtProfTrace, (void * userdata, int32_t length, aclrtStream stream), (userdata, length, stream)) \
     _(aclError, aclrtLaunchKernelV2, (aclrtFuncHandle funcHandle, uint32_t numBlocks, const void * argsData, size_t argsSize, aclrtLaunchKernelCfg * cfg, aclrtStream stream), (funcHandle, numBlocks, argsData, argsSize, cfg, stream)) \
     _(aclError, aclrtLaunchKernelWithHostArgs, (aclrtFuncHandle funcHandle, uint32_t numBlocks, aclrtStream stream, aclrtLaunchKernelCfg * cfg, void * hostArgs, size_t argsSize, aclrtPlaceHolderInfo * placeHolderArray, size_t placeHolderNum), (funcHandle, numBlocks, stream, cfg, hostArgs, argsSize, placeHolderArray, placeHolderNum)) \
+    _(aclError, aclrtLaunchKernelWithArgsArray, (void * func, uint32_t numBlocks, aclrtStream stream, aclrtLaunchKernelCfg * cfg, void ** args), (func, numBlocks, stream, cfg, args)) \
     _(aclError, aclrtCtxGetFloatOverflowAddr, (void ** overflowAddr), (overflowAddr)) \
     _(aclError, aclrtGetFloatOverflowStatus, (void * outputAddr, uint64_t outputSize, aclrtStream stream), (outputAddr, outputSize, stream)) \
     _(aclError, aclrtResetFloatOverflowStatus, (aclrtStream stream), (stream)) \
@@ -298,6 +299,8 @@
     _(aclError, aclrtCacheLastTaskExtendInfo, (const char* const extendInfoPtr, const size_t infoSize), (extendInfoPtr, infoSize)) \
     _(aclError, aclrtGetFunctionAttribute, (aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t * attrValue), (funcHandle, attrType, attrValue)) \
     _(aclError, aclrtFunctionGetBinary, (const aclrtFuncHandle funcHandle, aclrtBinHandle *binHandle), (funcHandle, binHandle)) \
+    _(aclError, aclrtFunctionGetParamCount, (const void *func, size_t *paramCount), (func, paramCount)) \
+    _(aclError, aclrtFunctionGetParamInfo, (const void *func, size_t paramIndex, size_t *paramOffset, size_t *paramSize), (func, paramIndex, paramOffset, paramSize)) \
     _(aclError, aclrtIpcGetEventHandle, (aclrtEvent event, aclrtIpcEventHandle * handle), (event, handle)) \
     _(aclError, aclrtIpcOpenEventHandle, (aclrtIpcEventHandle handle, aclrtEvent * event), (handle, event)) \
     _(aclError, aclrtMemRetainAllocationHandle, (void* virPtr, aclrtDrvMemHandle * handle), (virPtr, handle)) \

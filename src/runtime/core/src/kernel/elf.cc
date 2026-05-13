@@ -536,6 +536,52 @@ static void ElfParseBinaryTlvInfo(rtElfData * const elfData, uint16_t tlvType, c
     }
 }
 
+static void ElfParseParamSummary(const uint8_t *buf, ElfKernelInfo *tlvInfo)
+{
+    const ElfParamSummary *paramSummary = RtPtrToPtr<const ElfParamSummary *>(buf);
+    tlvInfo->paramCount = static_cast<uint32_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramSummary->paraNums)), sizeof(uint32_t)));
+    tlvInfo->paramTotalSize = GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramSummary->paramTotalSize)), sizeof(uint64_t));
+    tlvInfo->hasParamSummary = true;
+    RT_LOG(RT_LOG_INFO, "paramCount=%u, paramTotalSize=%llu.", tlvInfo->paramCount, tlvInfo->paramTotalSize);
+}
+
+static void ElfParseParamInfo(const uint8_t *buf, ElfKernelInfo *tlvInfo)
+{
+    const ElfParamInfo *paramInfo = RtPtrToPtr<const ElfParamInfo *>(buf);
+    
+    ElfParamInfo info{};
+    info.head.type = static_cast<uint16_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->head.type)), sizeof(uint16_t)));
+    info.head.length = static_cast<uint16_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->head.length)), sizeof(uint16_t)));
+    info.info.index = static_cast<uint32_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->info.index)), sizeof(uint32_t)));
+    info.info.ordinal = static_cast<uint32_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->info.ordinal)), sizeof(uint32_t)));
+    info.info.offset = static_cast<uint32_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->info.offset)), sizeof(uint32_t)));
+    info.info.size = static_cast<uint32_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->info.size)), sizeof(uint32_t)));
+    info.info.align = static_cast<uint16_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->info.align)), sizeof(uint16_t)));
+    info.info.paramType = static_cast<uint16_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->info.paramType)), sizeof(uint16_t)));
+    info.info.spaceIndex = static_cast<uint32_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->info.spaceIndex)), sizeof(uint32_t)));
+    info.info.spaceType = static_cast<uint32_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->info.spaceType)), sizeof(uint32_t)));
+    info.info.space = static_cast<uint32_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->info.space)), sizeof(uint32_t)));
+    info.info.resv = static_cast<uint32_t>(GetByte(
+        RtPtrToPtr<const uint8_t *>(&(paramInfo->info.resv)), sizeof(uint32_t)));
+
+    tlvInfo->cachedParamInfos.push_back(info);
+    RT_LOG(RT_LOG_INFO, "Cache param info: ordinal=%u, offset=%u, size=%u, align=%u, paramType=%u, spaceIndex=%u.",
+           info.info.ordinal, info.info.offset, info.info.size, info.info.align, info.info.paramType, info.info.spaceIndex);
+}
+
 static rtError_t ElfParseTlvInfo(uint16_t tlvType, const uint8_t *buf, ElfKernelInfo *tlvInfo)
 {
     const ElfFuncTypeInfo *typeInfo = nullptr;
@@ -613,6 +659,12 @@ static rtError_t ElfParseTlvInfo(uint16_t tlvType, const uint8_t *buf, ElfKernel
             tlvInfo->schedMode = static_cast<uint32_t>(
                 GetByte(RtPtrToPtr<const uint8_t *, const uint32_t *>(&(schedModeInfo->schedMode)), tlvLength));
             RT_LOG(RT_LOG_INFO, "tlvLength=%u, schedMode=%u.", tlvLength, tlvInfo->schedMode);
+            break;
+        case FUNC_META_TYPE_PARAM_SUMMARY:
+            ElfParseParamSummary(buf, tlvInfo);
+            break;
+        case FUNC_META_TYPE_PARAM_INFO:
+            ElfParseParamInfo(buf, tlvInfo);
             break;
         default:
             break;
@@ -746,9 +798,14 @@ static void KernelMetaInfoInit(RtKernelMetaInfo * const kernelMetaInfo) {
     kernelMetaInfo->schedMode = static_cast<uint32_t>(RT_SCHEM_MODE_NORMAL);
     kernelMetaInfo->userArgsNum = USER_ARGS_MAX_NUM;
     kernelMetaInfo->minStackSize = 0U;
+    kernelMetaInfo->paramInfos = nullptr;
+    kernelMetaInfo->paramCount = 0U;
+    kernelMetaInfo->paramTotalSize = 0ULL;
+    kernelMetaInfo->hasParamSummary = false;
 }
 
 static void kernelInfoInit(rtElfData * const elfData, Elf_Internal_Shdr *section, ElfKernelInfo * const kernelInfo) {
+    kernelInfo->cachedParamInfos.clear();
     kernelInfo->funcType = static_cast<uint32_t>(KERNEL_FUNCTION_TYPE_INVALID);
     kernelInfo->crossCoreSync = static_cast<uint32_t>(FUNC_NO_USE_SYNC);
     kernelInfo->taskRation[0] = 0U; // init value 0
@@ -762,6 +819,9 @@ static void kernelInfoInit(rtElfData * const elfData, Elf_Internal_Shdr *section
     kernelInfo->functionEntryFlag = KERNEL_FUNCTION_ENTRY_DISABLE;
     kernelInfo->isSupportFuncEntry = false;
     kernelInfo->schedMode = static_cast<uint32_t>(RT_SCHEM_MODE_NORMAL);
+    kernelInfo->paramCount = 0U;
+    kernelInfo->paramTotalSize = 0ULL;
+    kernelInfo->hasParamSummary = false;
 }
 
 static void ParseKernelMetaData(rtElfData * const elfData, Elf_Internal_Shdr *section,
@@ -840,8 +900,10 @@ static void ParseKernelMetaData(rtElfData * const elfData, Elf_Internal_Shdr *se
 static void KernelInfoMapRelease(std::map<std::string, ElfKernelInfo *>& kernelInfoMap)
 {
     for (auto iter = kernelInfoMap.begin(); iter != kernelInfoMap.end(); ++iter) {
-        const ElfKernelInfo * const kernelInfo = iter->second;
-        delete kernelInfo;
+        ElfKernelInfo * const kernelInfo = iter->second;
+        if (kernelInfo != nullptr) {
+            delete kernelInfo;
+        }
     }
 }
 
@@ -953,6 +1015,48 @@ static rtError_t SetKernelSchedMode(RtKernel * const kernels, const ElfKernelInf
     return RT_ERROR_NONE;
 }
 
+static rtError_t UpdateCachedParamInfos(RtKernelMetaInfo *metaInfo,
+                                          const ElfKernelInfo *kernelInfo,
+                                          const char *kernelName)
+{
+    if (!kernelInfo->hasParamSummary || (kernelInfo->paramCount == 0U)) {
+        return RT_ERROR_NONE;
+    }
+
+    if (kernelInfo->cachedParamInfos.size() != kernelInfo->paramCount) {
+        RT_LOG(RT_LOG_ERROR, "Cached param count mismatch: kernel_name=%s, expected=%u, cached=%zu.",
+               kernelName, kernelInfo->paramCount, kernelInfo->cachedParamInfos.size());
+        return RT_ERROR_INVALID_VALUE;
+    }
+
+    metaInfo->paramInfos = std::shared_ptr<ElfParamInfo[]>(
+        new (std::nothrow) ElfParamInfo[kernelInfo->paramCount]
+    );
+
+    if (metaInfo->paramInfos == nullptr) {
+        RT_LOG(RT_LOG_ERROR, "Failed to allocate memory for paramInfos, kernel_name=%s, paramCount=%u.",
+               kernelName, kernelInfo->paramCount);
+        return RT_ERROR_MEMORY_ALLOCATION;
+    }
+
+    for (const auto &cachedInfo : kernelInfo->cachedParamInfos) {
+        if (cachedInfo.info.ordinal < kernelInfo->paramCount) {
+            metaInfo->paramInfos[cachedInfo.info.ordinal] = cachedInfo;
+            RT_LOG(RT_LOG_INFO, "Restore cached param info: kernel_name=%s, ordinal=%u, offset=%u, size=%u.",
+                   kernelName, cachedInfo.info.ordinal, cachedInfo.info.offset, cachedInfo.info.size);
+        } else {
+            RT_LOG(RT_LOG_ERROR, "Restore cached param info failed: kernel_name=%s, error ordinal=%u, offset=%u, size=%u, maxParamCount=%u.",
+                   kernelName, cachedInfo.info.ordinal, cachedInfo.info.offset, cachedInfo.info.size, kernelInfo->paramCount);
+            return RT_ERROR_INVALID_VALUE;
+        }
+    }
+
+    metaInfo->hasParamSummary = kernelInfo->hasParamSummary;
+    metaInfo->paramCount = kernelInfo->paramCount;
+    metaInfo->paramTotalSize = kernelInfo->paramTotalSize;
+    return RT_ERROR_NONE;
+}
+
 rtError_t UpdateKernelsInfo(std::map<std::string, ElfKernelInfo *>& kernelInfoMap,
                             RtKernel * const kernels, rtElfData * const elfData)
 {
@@ -983,9 +1087,13 @@ rtError_t UpdateKernelsInfo(std::map<std::string, ElfKernelInfo *>& kernelInfoMa
         metaInfo->taskRation = DEFAULT_TASK_RATION;
         metaInfo->kernelVfType = iter->second->kernelVfType;
         metaInfo->shareMemSize = iter->second->shareMemSize;
+        
+        /* update kernel params info */
+        rtError_t error = UpdateCachedParamInfos(metaInfo, iter->second, kernels[index].name);
+        COND_RETURN_WITH_NOLOG((error != RT_ERROR_NONE), error)
 
         /* update minStackSize */
-        rtError_t error = UpdateKernelsMinStackSizeInfo(&(kernels[index]), iter->second);
+        error = UpdateKernelsMinStackSizeInfo(&(kernels[index]), iter->second);
         COND_RETURN_WITH_NOLOG((error != RT_ERROR_NONE), error);
 
         /* update funcEntry */
@@ -999,12 +1107,13 @@ rtError_t UpdateKernelsInfo(std::map<std::string, ElfKernelInfo *>& kernelInfoMa
         RT_LOG(RT_LOG_INFO, "update meta info, kernel_name=%s, dfxAddr=0x%llx, dfxSize=%u, funcType=%u, "
             "elfDataFlag=%d, userArgsNum=%hu, crossCoreSync=%u, kernelVfType=%u, shareMemSize=%u, "
             "minStackSize=%u, funcEntryType=%u, functionEntry=%lu, schedMode=%u, "
-            "taskRation_0=%hu, taskRation_1=%hu.",
+            "taskRation_0=%hu, taskRation_1=%hu, hasParamSummary=%d, paramCount=%u, paramTotalSize=%llu.",
             kernels[index].name, metaInfo->dfxAddr, metaInfo->dfxSize, metaInfo->funcType,
             metaInfo->elfDataFlag, metaInfo->userArgsNum, metaInfo->crossCoreSync,
             metaInfo->kernelVfType, metaInfo->shareMemSize, metaInfo->minStackSize,
             metaInfo->funcEntryType, metaInfo->functionEntry, metaInfo->schedMode,
-            iter->second->taskRation[0], iter->second->taskRation[1]);
+            iter->second->taskRation[0], iter->second->taskRation[1],
+            metaInfo->hasParamSummary, metaInfo->paramCount, metaInfo->paramTotalSize);
 
         // section no taskRation && not support mix ratio
         if (((iter->second->taskRation[0] == 0U) && (iter->second->taskRation[1] == 0U)) ||
@@ -1087,14 +1196,11 @@ RtKernel *GetKernels(rtElfData * const elfData)
             return nullptr;
         }
 
-        RtKernel * const kernels = new (std::nothrow) RtKernel[funcNum];
+        RtKernel * const kernels = new (std::nothrow) RtKernel[funcNum]();
         if (kernels == nullptr) {
             return kernels;
         }
 
-        const size_t size = static_cast<size_t>((sizeof(RtKernel)) * (funcNum));
-        errno_t rc = memset_s(kernels, size, 0, size);
-        COND_LOG(rc != EOK, "memset_s failed, size=%zu, retCode=%d.", size, rc);
         elfData->func_num = funcNum;
 
         Elf_Internal_Sym *psym = symTab.get();
@@ -1121,7 +1227,7 @@ RtKernel *GetKernels(rtElfData * const elfData)
                 return nullptr;
             }
             (void)memset_s(kernels[kernelNum].name, len + 1U, 0, len + 1U);
-            rc = strncpy_s(kernels[kernelNum].name, len + 1U, stringTab + psym->st_name, strTabSize);
+            errno_t rc = strncpy_s(kernels[kernelNum].name, len + 1U, stringTab + psym->st_name, strTabSize);
             COND_LOG(rc != EOK, "strncpy_s failed, size=%zu, strTabSize=%u, retCode=%d.", len + 1U, strTabSize, rc);
             kernels[kernelNum].offset = static_cast<int32_t>(psym->st_value);
             kernels[kernelNum].length = static_cast<int32_t>(psym->st_size);

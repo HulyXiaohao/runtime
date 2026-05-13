@@ -33,11 +33,14 @@
 - [`aclError aclrtLaunchKernelV2(aclrtFuncHandle funcHandle, uint32_t numBlocks, const void *argsData, size_t argsSize, aclrtLaunchKernelCfg *cfg, aclrtStream stream)`](#aclrtLaunchKernelV2)：指定任务下发的配置信息，并启动对应算子的计算任务。异步接口。
 - [`aclError aclrtLaunchKernelWithConfig(aclrtFuncHandle funcHandle, uint32_t numBlocks, aclrtStream stream, aclrtLaunchKernelCfg *cfg, aclrtArgsHandle argsHandle, void *reserve)`](#aclrtLaunchKernelWithConfig)：指定任务下发的配置信息，并启动对应算子的计算任务。异步接口。
 - [`aclError aclrtLaunchKernelWithHostArgs(aclrtFuncHandle funcHandle, uint32_t numBlocks, aclrtStream stream, aclrtLaunchKernelCfg *cfg, void *hostArgs, size_t argsSize, aclrtPlaceHolderInfo *placeHolderArray, size_t placeHolderNum)`](#aclrtLaunchKernelWithHostArgs)：指定任务下发的配置信息，并启动对应算子的计算任务。异步接口。
+- [`aclError aclrtLaunchKernelWithArgsArray(void *func, uint32_t numBlocks, aclrtStream stream, aclrtLaunchKernelCfg *cfg, void **args)`](#aclrtLaunchKernelWithArgsArray)：使用参数数组启动核函数计算任务，异步接口。
 - [`aclrtBinary aclrtCreateBinary(const void *data, size_t dataLen)`](#aclrtCreateBinary)：创建aclrtBinary类型的数据，该数据类型用于描述算子二进制信息。此处的算子为使用Ascend C语言开发的自定义算子。
 - [`aclError aclrtDestroyBinary(aclrtBinary binary)`](#aclrtDestroyBinary)：销毁通过[aclrtCreateBinary](#aclrtCreateBinary)接口创建的aclrtBinary类型的数据。
 - [`aclError aclrtBinaryLoad(const aclrtBinary binary, aclrtBinHandle *binHandle)`](#aclrtBinaryLoad)：解析、加载算子二进制文件，输出指向算子二进制的binHandle，同时将算子二进制文件数据拷贝至当前Context对应的Device上。
 - [`aclError aclrtBinaryUnLoad(aclrtBinHandle binHandle)`](#aclrtBinaryUnLoad)：删除binHandle指向的算子二进制数据，同时也删除加载算子二进制文件时拷贝到Device上的算子二进制数据。
 - [`aclError aclrtFunctionGetBinary(const aclrtFuncHandle funcHandle, aclrtBinHandle *binHandle)`](#aclrtFunctionGetBinary)：根据核函数句柄获取算子二进制句柄。
+- [`aclError aclrtFunctionGetParamCount(const void *func, size_t *paramCount)`](#aclrtFunctionGetParamCount)：从核函数句柄获取参数个数。
+- [`aclError aclrtFunctionGetParamInfo(const void *func, size_t paramIndex, size_t *paramOffset, size_t *paramSize)`](#aclrtFunctionGetParamInfo)：根据索引从核函数句柄获取参数信息。
 
 ## 概念及使用说明
 
@@ -1159,6 +1162,7 @@ aclError aclrtLaunchKernel(aclrtFuncHandle funcHandle, uint32_t numBlocks, const
 | [aclrtLaunchKernelV2](#aclrtLaunchKernelV2) | 在接口中指定存放核函数所有入参数据的Device内存地址指针 | Device内存 | 是 |
 | [aclrtLaunchKernelWithConfig](#aclrtLaunchKernelWithConfig) | 在接口中指定参数列表句柄aclrtArgsHandle | Host内存 | 是 |
 | [aclrtLaunchKernelWithHostArgs](#aclrtLaunchKernelWithHostArgs) | 在接口中指定存放核函数所有入参数据的Host内存地址指针 | Host内存 | 是 |
+| [aclrtLaunchKernelWithArgsArray](#aclrtLaunchKernelWithArgsArray) | 在接口中指定参数数组指针，每个元素指向一个参数数据 | Host内存 | 是 |
 
 
 <br>
@@ -1215,6 +1219,7 @@ aclError aclrtLaunchKernelV2(aclrtFuncHandle funcHandle, uint32_t numBlocks, con
 | [aclrtLaunchKernelV2](#aclrtLaunchKernelV2) | 在接口中指定存放核函数所有入参数据的Device内存地址指针 | Device内存 | 是 |
 | [aclrtLaunchKernelWithConfig](#aclrtLaunchKernelWithConfig) | 在接口中指定参数列表句柄aclrtArgsHandle | Host内存 | 是 |
 | [aclrtLaunchKernelWithHostArgs](#aclrtLaunchKernelWithHostArgs) | 在接口中指定存放核函数所有入参数据的Host内存地址指针 | Host内存 | 是 |
+| [aclrtLaunchKernelWithArgsArray](#aclrtLaunchKernelWithArgsArray) | 在接口中指定参数数组指针，每个元素指向一个参数数据 | Host内存 | 是 |
 
 
 <br>
@@ -1273,6 +1278,7 @@ aclError aclrtLaunchKernelWithConfig(aclrtFuncHandle funcHandle, uint32_t numBlo
 | [aclrtLaunchKernelV2](#aclrtLaunchKernelV2) | 在接口中指定存放核函数所有入参数据的Device内存地址指针 | Device内存 | 是 |
 | [aclrtLaunchKernelWithConfig](#aclrtLaunchKernelWithConfig) | 在接口中指定参数列表句柄aclrtArgsHandle | Host内存 | 是 |
 | [aclrtLaunchKernelWithHostArgs](#aclrtLaunchKernelWithHostArgs) | 在接口中指定存放核函数所有入参数据的Host内存地址指针 | Host内存 | 是 |
+| [aclrtLaunchKernelWithArgsArray](#aclrtLaunchKernelWithArgsArray) | 在接口中指定参数数组指针，每个元素指向一个参数数据 | Host内存 | 是 |
 
 
 <br>
@@ -1331,6 +1337,65 @@ aclError aclrtLaunchKernelWithHostArgs(aclrtFuncHandle funcHandle, uint32_t numB
 | [aclrtLaunchKernelV2](#aclrtLaunchKernelV2) | 在接口中指定存放核函数所有入参数据的Device内存地址指针 | Device内存 | 是 |
 | [aclrtLaunchKernelWithConfig](#aclrtLaunchKernelWithConfig) | 在接口中指定参数列表句柄aclrtArgsHandle | Host内存 | 是 |
 | [aclrtLaunchKernelWithHostArgs](#aclrtLaunchKernelWithHostArgs) | 在接口中指定存放核函数所有入参数据的Host内存地址指针 | Host内存 | 是 |
+| [aclrtLaunchKernelWithArgsArray](#aclrtLaunchKernelWithArgsArray) | 在接口中指定参数数组指针，每个元素指向一个参数数据 | Host内存 | 是 |
+
+
+<br>
+<br>
+<br>
+
+
+
+<a id="aclrtLaunchKernelWithArgsArray"></a>
+
+## aclrtLaunchKernelWithArgsArray
+
+```c
+aclError aclrtLaunchKernelWithArgsArray(void *func, uint32_t numBlocks, aclrtStream stream, aclrtLaunchKernelCfg *cfg, void **args)
+```
+
+### 产品支持情况
+
+
+| 产品 | 是否支持 |
+| --- | :---: |
+| Ascend 950PR/Ascend 950DT | √ |
+| Atlas A3 训练系列产品/Atlas A3 推理系列产品 | √ |
+| Atlas A2 训练系列产品/Atlas A2 推理系列产品 | √ |
+
+### 功能说明
+
+使用参数数组启动核函数计算任务，异步接口。
+
+本接口通过参数数组的方式传递核函数入参，每个数组元素指向一个参数数据。该方式适用于参数个数动态变化或参数分散存储的场景。
+
+### 参数说明
+
+
+| 参数名 | 输入/输出 | 说明 |
+| --- | :---: | --- |
+| func | 输入 | 核函数句柄。类型定义请参见[aclrtFuncHandle](25_数据类型及其操作接口.md#aclrtFuncHandle)。 |
+| numBlocks | 输入 | 指定核函数将会在几个核上执行。 |
+| stream | 输入 | 指定执行任务的Stream。类型定义请参见[aclrtStream](25_数据类型及其操作接口.md#aclrtStream)。 |
+| cfg | 输入 | 任务下发的配置信息。类型定义请参见[aclrtLaunchKernelCfg](25_数据类型及其操作接口.md#aclrtLaunchKernelCfg)。<br>不指定配置时，此处可传NULL。 |
+| args | 输入 | 参数数组指针，每个数组元素指向一个参数数据。 |
+
+### 返回值说明
+
+返回0表示成功，返回其他值表示失败，请参见[aclError](25_数据类型及其操作接口.md#aclError)。
+
+### 参考资源
+
+下表的几个接口都用于启用对应算子的计算任务，但功能和使用方式有所不同：
+
+
+| 接口 | 核函数参数值的传入方式 | 核函数参数值的存放位置 | 是否可指定任务下发的配置信息 |
+| --- | --- | --- | --- |
+| [aclrtLaunchKernel](#aclrtLaunchKernel) | 在接口中指定存放核函数所有入参数据的Device内存地址指针 | Device内存 | 否 |
+| [aclrtLaunchKernelV2](#aclrtLaunchKernelV2) | 在接口中指定存放核函数所有入参数据的Device内存地址指针 | Device内存 | 是 |
+| [aclrtLaunchKernelWithConfig](#aclrtLaunchKernelWithConfig) | 在接口中指定参数列表句柄aclrtArgsHandle | Host内存 | 是 |
+| [aclrtLaunchKernelWithHostArgs](#aclrtLaunchKernelWithHostArgs) | 在接口中指定存放核函数所有入参数据的Host内存地址指针 | Host内存 | 是 |
+| [aclrtLaunchKernelWithArgsArray](#aclrtLaunchKernelWithArgsArray) | 在接口中指定参数数组指针，每个元素指向一个参数数据 | Host内存 | 是 |
 
 
 <br>
@@ -1533,6 +1598,92 @@ aclError aclrtFunctionGetBinary(const aclrtFuncHandle funcHandle, aclrtBinHandle
 | --- | :---: | --- |
 | funcHandle | 输入 | 核函数句柄。类型定义请参见[aclrtFuncHandle](25_数据类型及其操作接口.md#aclrtFuncHandle)。 |
 | binHandle | 输出 | 算子二进制的句柄。类型定义请参见[aclrtBinHandle](25_数据类型及其操作接口.md#aclrtBinHandle)。 |
+
+### 返回值说明
+
+返回0表示成功，返回其他值表示失败，请参见[aclError](25_数据类型及其操作接口.md#aclError)。
+
+
+<br>
+<br>
+<br>
+
+
+
+<a id="aclrtFunctionGetParamCount"></a>
+
+## aclrtFunctionGetParamCount
+
+```c
+aclError aclrtFunctionGetParamCount(const void *func, size_t *paramCount)
+```
+
+### 产品支持情况
+
+
+| 产品 | 是否支持 |
+| --- | :---: |
+| Ascend 950PR/Ascend 950DT | √ |
+| Atlas A3 训练系列产品/Atlas A3 推理系列产品 | √ |
+| Atlas A2 训练系列产品/Atlas A2 推理系列产品 | √ |
+
+### 功能说明
+
+从核函数句柄获取参数个数。
+
+本接口用于查询核函数的参数列表中包含多少个参数，配合[aclrtFunctionGetParamInfo](#aclrtFunctionGetParamInfo)接口使用，可遍历获取每个参数的详细信息（偏移和大小）。
+
+### 参数说明
+
+
+| 参数名 | 输入/输出 | 说明 |
+| --- | :---: | --- |
+| func | 输入 | 核函数句柄。类型定义请参见[aclrtFuncHandle](25_数据类型及其操作接口.md#aclrtFuncHandle)。 |
+| paramCount | 输出 | 参数个数。 |
+
+### 返回值说明
+
+返回0表示成功，返回其他值表示失败，请参见[aclError](25_数据类型及其操作接口.md#aclError)。
+
+
+<br>
+<br>
+<br>
+
+
+
+<a id="aclrtFunctionGetParamInfo"></a>
+
+## aclrtFunctionGetParamInfo
+
+```c
+aclError aclrtFunctionGetParamInfo(const void *func, size_t paramIndex, size_t *paramOffset, size_t *paramSize)
+```
+
+### 产品支持情况
+
+
+| 产品 | 是否支持 |
+| --- | :---: |
+| Ascend 950PR/Ascend 950DT | √ |
+| Atlas A3 训练系列产品/Atlas A3 推理系列产品 | √ |
+| Atlas A2 训练系列产品/Atlas A2 推理系列产品 | √ |
+
+### 功能说明
+
+根据索引从核函数句柄获取参数信息（偏移和大小）。
+
+本接口用于查询核函数参数列表中指定索引位置的参数详细信息，包括参数在参数数据区中的偏移和大小。配合[aclrtFunctionGetParamCount](#aclrtFunctionGetParamCount)接口使用，可遍历获取所有参数的信息。
+
+### 参数说明
+
+
+| 参数名 | 输入/输出 | 说明 |
+| --- | :---: | --- |
+| func | 输入 | 核函数句柄。类型定义请参见[aclrtFuncHandle](25_数据类型及其操作接口.md#aclrtFuncHandle)。 |
+| paramIndex | 输入 | 参数索引，从0开始计数。 |
+| paramOffset | 输出 | 参数在参数数据区中的偏移，单位为Byte。 |
+| paramSize | 输出 | 参数的大小，单位为Byte。 |
 
 ### 返回值说明
 

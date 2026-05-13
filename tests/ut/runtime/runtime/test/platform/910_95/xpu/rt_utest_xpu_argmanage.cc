@@ -141,3 +141,26 @@ TEST_F(ArgManageXpuTest, xpu_arg_manager_H2DArgCopy_MemcpyFail)
     free(result1.kerArgs);
     delete result;
 }
+
+TEST_F(ArgManageXpuTest, XpuArgManage_LoadArgsFromArray_NotSupport)
+{
+    const uint32_t prio = RT_STREAM_PRIORITY_DEFAULT;
+    const uint32_t flag = 0;
+    Stream **result = new Stream *(nullptr);
+    rtError_t error = context_->StreamCreate(prio, flag, result);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    
+    XpuStream *stream = static_cast<XpuStream *>(context_->StreamList_().front());
+    
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel kernelMock("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+    
+    void *argsArray[2] = {(void *)0x100, (void *)0x200};
+    DavidArgLoaderResult result1 = {nullptr, nullptr, nullptr, UINT32_MAX};
+    
+    error = stream->ArgManagePtr()->LoadArgsFromArray(false, &kernelMock, argsArray, &result1);
+    EXPECT_EQ(error, RT_ERROR_FEATURE_NOT_SUPPORT);
+    
+    delete result;
+}

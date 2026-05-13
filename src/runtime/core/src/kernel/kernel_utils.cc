@@ -421,5 +421,31 @@ void SetKernelLaunchParams(const Stream *const stm, const rtArgsEx_t *const args
         launchParam.placeHoderPtr[idx].dataOffset = argsInfo->tilingDataOffset;
     }
 }
+
+rtError_t CopyKernelParamsToBuffer(const Kernel *kernel, void **argsArray, void *dest)
+{
+    if (kernel == nullptr || argsArray == nullptr || dest == nullptr) {
+        RT_LOG(RT_LOG_ERROR, "Invalid parameters, kernel=%p, argsArray=%p, dest=%p.", kernel, argsArray, dest);
+        return RT_ERROR_INVALID_VALUE;
+    }
+    
+    uint32_t paramCount = kernel->GetParamCount();
+    for (uint32_t i = 0U; i < paramCount; i++) {
+        uint32_t offset = 0U;
+        uint32_t size = 0U;
+        COND_RETURN_ERROR(argsArray[i] == nullptr, RT_ERROR_INVALID_VALUE,
+                       "argsArray[%u] is null.", i);
+        rtError_t error = kernel->GetParamInfo(i, &offset, &size);
+        COND_RETURN_ERROR((error != RT_ERROR_NONE), error,
+                       "GetParamInfo failed, index=%u, retCode=%#x.", i, static_cast<uint32_t>(error));        
+        
+        void *destAddr = static_cast<char *>(dest) + offset;
+        const errno_t ret = memcpy_s(destAddr, static_cast<size_t>(size), 
+                                     argsArray[i], static_cast<size_t>(size));
+        COND_RETURN_ERROR((ret != EOK), RT_ERROR_SEC_HANDLE,
+                        "memcpy_s failed, index=%u, offset=%u, size=%u, ret=%d.", i, offset, size, ret);     
+    }
+    return RT_ERROR_NONE;
+}
 }
 }

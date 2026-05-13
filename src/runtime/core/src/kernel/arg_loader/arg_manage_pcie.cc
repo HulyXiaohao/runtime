@@ -14,6 +14,9 @@
 #include "task_res.hpp"
 #include "error_message_manage.hpp"
 #include "arg_manage_david.hpp"
+#include "kernel.hpp"
+#include "kernel_utils.hpp"
+#include "thread_local_container.hpp"
 
 namespace cce {
 namespace runtime {
@@ -89,6 +92,39 @@ rtError_t PcieArgManage::H2DArgCopy(const DavidArgLoaderResult * const result, v
 void PcieArgManage::RecycleDevLoader(void * const handle)
 {
     (void)stream_->Device_()->ArgLoader_()->Release(handle);
+}
+
+rtError_t PcieArgManage::LoadArgsFromArray(const bool useArgPool,
+    const Kernel *kernel, void **argsArray, DavidArgLoaderResult *result)
+{
+    uint64_t paramTotalSize = kernel->GetParamTotalSize();
+    uint32_t argsSize = static_cast<uint32_t>(paramTotalSize);
+    if (argsSize == 0U) {
+        result->kerArgs = nullptr;
+        return RT_ERROR_NONE;
+    }
+
+    rtError_t error = AllocCopyPtr(argsSize, useArgPool, result);
+    if (error != RT_ERROR_NONE) {
+        RT_LOG(RT_LOG_ERROR, "Alloc args copy ptr failed, size=%u, device_id=%u, stream_id=%d.",
+            argsSize, stream_->Device_()->Id_(), stream_->Id_());
+        return error;
+    }
+
+    void *argsBuffer = ThreadLocalContainer::GetOrCreateArgsBuffer(static_cast<uint64_t>(argsSize));
+    if (argsBuffer == nullptr) {
+        FreeFail(result);
+        RT_LOG(RT_LOG_ERROR, "GetOrCreateArgsBuffer failed, size=%u.", argsSize);
+        return RT_ERROR_MEMORY_ALLOCATION;
+    }
+
+    error = CopyKernelParamsToBuffer(kernel, argsArray, argsBuffer);
+    if (error != RT_ERROR_NONE) {
+        FreeFail(result);
+        return error;
+    }
+
+    return H2DArgCopy(result, argsBuffer, argsSize);
 }
 
 }

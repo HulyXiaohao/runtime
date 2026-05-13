@@ -72,6 +72,7 @@ enum ArgsType : int32_t {
     RT_ARGS_NON_CPU_EX = 1,
     RT_ARGS_CPU_EX,
     RT_ARGS_HANDLE,
+    RT_ARGS_ARRAY,
     RT_ARGS_MAX
 };
 
@@ -81,6 +82,7 @@ struct RtArgsWithType {
         rtArgsEx_t *nonCpuArgsInfo;
         rtCpuKernelArgs_t *cpuArgsInfo;
         RtArgsHandle *argHandle;
+        void **argsArrayInfo;
     } args;
 };
 

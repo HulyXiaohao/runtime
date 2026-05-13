@@ -92,6 +92,7 @@ set(libruntime_api_src_files
 set(common_src_files
     ${RUNTIME_CORE_DIR}/src/common/error_code.cc
     ${RUNTIME_CORE_DIR}/src/common/thread_local_container.cc
+    ${RUNTIME_CORE_DIR}/src/common/args_buffer_guard.cc
     ${RUNTIME_CORE_DIR}/src/common/utils.cc
     ${RUNTIME_CORE_DIR}/src/common/heterogenous.cc
     ${RUNTIME_CORE_DIR}/src/common/soc_info.cc

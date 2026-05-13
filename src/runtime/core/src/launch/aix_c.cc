@@ -524,7 +524,14 @@ rtError_t StreamLaunchKernelV2(Kernel * const kernel, const uint32_t coreDim, St
     error = CheckDynSizeValid(kernelTask, kernel);
     COND_RETURN_ERROR(error != RT_ERROR_NONE, error, "Failed to check SIMT shared memory size, stream_id=%d, kernel_name=%s, retCode=%#x.",
         stm->Id_(), kernel->Name_().c_str(), static_cast<uint32_t>(error));
-    error = static_cast<DavidStream *>(dstStm)->LoadArgsInfo(argsInfo, useArgPool, &result);
+    if (extendAgrs->argsArray != nullptr) {
+        uint64_t paramTotalSize = kernel->GetParamTotalSize();
+        useArgPool = useArgPool && (paramTotalSize <= STM_ARG_POOL_COPY_SIZE);
+        error = static_cast<DavidStream *>(dstStm)->LoadArgsFromArray(
+            useArgPool, kernel, extendAgrs->argsArray, &result);
+    } else {
+        error = static_cast<DavidStream *>(dstStm)->LoadArgsInfo(argsInfo, useArgPool, &result);
+    }
     ERROR_RETURN_MSG_INNER(error, "Failed to load args, stream_id=%d, useArgPool=%u, retCode=%#x.",
         stm->Id_(), useArgPool, static_cast<uint32_t>(error));
     AicTaskInfo *aicTask = &(kernelTask->u.aicTaskInfo);
@@ -533,12 +540,13 @@ rtError_t StreamLaunchKernelV2(Kernel * const kernel, const uint32_t coreDim, St
     aicTask->funcAddr = kernelPc1;
     aicTask->funcAddr1 = kernelPc2;
     SetArgsAix(stm, argsInfo, kernelTask, &result);
-
+    aicTask->comm.argsSize = (extendAgrs->argsArray != nullptr) ? kernel->GetParamTotalSize() : argsInfo->argsSize;
     RT_LOG(RT_LOG_INFO, "stream_id=%d, kernel_name=%s, kernelAttrType=%d, funcType=%u, arg_size=%u, mixType=%hhu, "
         "coreDim=%u, taskRation=%u, kernelVfType=%u, dynamicSmSize=%u, addr1=0x%llx, addr2=0x%llx, "
         "kernelFlag=0x%x, qos=%u, partId=%u, schemMode=%u, infoAddr=%p, atomicIndex=%u, "
         "groupDim=%u, groupBlockDim=%u.",
-        stm->Id_(), kernel->Name_().c_str(), kernelAttrType, kernel->GetFuncType(), argsInfo->argsSize, mixType,
+        stm->Id_(), kernel->Name_().c_str(), kernelAttrType, kernel->GetFuncType(),
+        (extendAgrs->argsArray != nullptr) ? kernel->GetParamTotalSize() : argsInfo->argsSize, mixType,
         coreDim, kernel->GetTaskRation(), kernel->KernelVfType_(),
         aicTask->dynamicShareMemSize, kernelPc1, kernelPc2, aicTask->comm.kernelFlag, aicTask->qos,
         aicTask->partId, aicTask->schemMode, aicTask->inputArgsSize.infoAddr, aicTask->inputArgsSize.atomicIndex,

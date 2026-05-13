@@ -486,6 +486,7 @@ set(runtimeut_src_list
     ${TOP_DIR}/src/runtime/feature/aclgraph/v100/capture_model_adapt_v100.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/args/args_handle_allocator.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/args/para_convertor.cc
+    ${TOP_DIR}/src/runtime/core/src/common/args_buffer_guard.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/binary_loader.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/elf.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/json_parse.cc
@@ -645,6 +646,7 @@ set(runtimeut_david_src_list
     ${TOP_DIR}/src/runtime/feature/aclgraph/v200/capture_model_adapt_v200.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/args/args_handle_allocator.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/args/para_convertor.cc
+    ${TOP_DIR}/src/runtime/core/src/common/args_buffer_guard.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/v200_base/kernel.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/binary_loader.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/elf.cc
@@ -1473,6 +1475,7 @@ set(runtimeut_v201_src_list
     ${TOP_DIR}/src/runtime/feature/aclgraph/v200/capture_model_adapt_v200.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/args/args_handle_allocator.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/args/para_convertor.cc
+    ${TOP_DIR}/src/runtime/core/src/common/args_buffer_guard.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/v200_base/kernel.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/binary_loader.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/program_common.cc

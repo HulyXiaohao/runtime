@@ -619,6 +619,35 @@ aclError aclrtLaunchKernelWithHostArgsImpl(aclrtFuncHandle funcHandle, uint32_t 
     return ACL_SUCCESS;
 }
 
+aclError aclrtLaunchKernelWithArgsArrayImpl(void *func, uint32_t numBlocks,
+                                            aclrtStream stream, aclrtLaunchKernelCfg *cfg, void **args)
+{
+    ACL_PROFILING_REG(acl::AclProfType::AclrtLaunchKernelWithArgsArray);
+    ACL_LOG_INFO("Start to execute aclrtLaunchKernelWithArgsArray");
+    ACL_REQUIRES_NOT_NULL_WITH_INPUT_REPORT(func);
+    ACL_REQUIRES_POSITIVE_REPORT(numBlocks);
+
+    rtKernelLaunchCfg_t *rt_cfg = nullptr;
+    if (cfg != nullptr) {
+        rt_cfg = reinterpret_cast<rtKernelLaunchCfg_t *>(cfg);
+    }
+
+    const rtError_t rtErr = rtLaunchKernelWithArgsArray(func, numBlocks, stream, rt_cfg, args);
+    if (rtErr != ACL_RT_SUCCESS) {
+        if (rtErr == ACL_ERROR_RT_INVALID_HANDLE) {
+            ACL_LOG_WARN("rtLaunchKernelWithArgsArray func is invalid, runtime result = %d.", rtErr);
+            return ACL_ERROR_RT_INVALID_HANDLE;
+        } else if (rtErr == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
+            ACL_LOG_WARN("rtLaunchKernelWithArgsArray not support, runtime result = %d.", rtErr);
+            return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+        } else {
+            ACL_LOG_CALL_ERROR("rtLaunchKernelWithArgsArray failed, runtime result = %d.", rtErr);
+            return ACL_GET_ERRCODE_RTS(rtErr);
+        }
+    }
+    return ACL_SUCCESS;
+}
+
 aclError aclrtGetFloatOverflowStatusImpl(void *outputAddr, uint64_t outputSize, aclrtStream stream)
 {
     ACL_PROFILING_REG(acl::AclProfType::AclrtGetFloatOverflowStatus);
@@ -803,6 +832,41 @@ aclError aclrtFunctionGetBinaryImpl(const aclrtFuncHandle funcHandle, aclrtBinHa
         ACL_LOG_CALL_ERROR("rtFunctionGetBinary failed, runtime result = %d.", rtErr);
         return ACL_GET_ERRCODE_RTS(rtErr);
     }
+    return ACL_SUCCESS;
+}
+
+aclError aclrtFunctionGetParamCountImpl(const void *func, size_t *paramCount)
+{
+    ACL_LOG_INFO("start to execute aclrtFunctionGetParamCount");
+    const rtError_t rtErr = rtFunctionGetParamCount(func, paramCount);
+    if (rtErr != ACL_RT_SUCCESS) {
+        if (rtErr == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
+            ACL_LOG_WARN("rtFunctionGetParamCount not support, runtime result = %d.", rtErr);
+ 	        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+        } else {
+            ACL_LOG_CALL_ERROR("rtFunctionGetParamCount failed, runtime result = %d.", rtErr);
+            return ACL_GET_ERRCODE_RTS(rtErr);
+        }
+    }
+    ACL_LOG_INFO("successfully execute aclrtFunctionGetParamCount, paramCount=%zu.", *paramCount);
+    return ACL_SUCCESS;
+}
+
+aclError aclrtFunctionGetParamInfoImpl(const void *func, size_t paramIndex,
+                                       size_t *paramOffset, size_t *paramSize)
+{
+    ACL_LOG_INFO("start to execute aclrtFunctionGetParamInfo, paramIndex=%zu.", paramIndex);
+    const rtError_t rtErr = rtFunctionGetParamInfo(func, paramIndex, paramOffset, paramSize);
+    if (rtErr != ACL_RT_SUCCESS) {
+        if (rtErr == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
+            ACL_LOG_WARN("rtFunctionGetParamInfo not support, runtime result = %d.", rtErr);
+ 	        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+        } else {
+            ACL_LOG_CALL_ERROR("rtFunctionGetParamInfo failed, runtime result = %d.", rtErr);
+            return ACL_GET_ERRCODE_RTS(rtErr);
+        }
+    }
+    ACL_LOG_INFO("successfully execute aclrtFunctionGetParamInfo.");
     return ACL_SUCCESS;
 }
 

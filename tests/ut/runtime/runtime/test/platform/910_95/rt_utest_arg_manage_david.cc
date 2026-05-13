@@ -33,6 +33,111 @@
 using namespace testing;
 using namespace cce::runtime;
 
+static void SetupDriverMockForPcie()
+{
+    Driver *drv = ((Runtime *)Runtime::Instance())->driverFactory_.GetDriver(NPU_DRIVER);
+    void *memBase = (void *)100;
+    uint32_t val = 1;
+    MOCKER_CPP_VIRTUAL(drv, &Driver::CheckSupportPcieBarCopy)
+        .stubs()
+        .with(mockcpp::any(), outBound(val), mockcpp::any())
+        .will(returnValue(RT_ERROR_NONE));
+    MOCKER_CPP_VIRTUAL(drv, &Driver::DevMemAlloc)
+        .stubs()
+        .with(outBoundP(&memBase, sizeof(memBase)), mockcpp::any(), mockcpp::any(), mockcpp::any())
+        .will(returnValue(RT_ERROR_NONE));
+    MOCKER(memcpy_s).stubs().will(returnValue(NULL));
+}
+
+static void SetupDriverMockForPcieWithAllocFailure()
+{
+    Driver *drv = ((Runtime *)Runtime::Instance())->driverFactory_.GetDriver(NPU_DRIVER);
+    void *memBase = (void *)100;
+    uint32_t val = 1;
+    MOCKER_CPP_VIRTUAL(drv, &Driver::CheckSupportPcieBarCopy)
+        .stubs()
+        .with(mockcpp::any(), outBound(val), mockcpp::any())
+        .will(returnValue(RT_ERROR_NONE));
+    MOCKER_CPP_VIRTUAL(drv, &Driver::DevMemAlloc)
+        .stubs()
+        .with(outBoundP(&memBase, sizeof(memBase)), mockcpp::any(), mockcpp::any(), mockcpp::any())
+        .will(returnValue(1))
+        .then(returnValue(RT_ERROR_NONE));
+    MOCKER(memcpy_s).stubs().will(returnValue(NULL));
+}
+
+static void TestLoadArgsFromArrayZeroSizeCommon(DavidStream *stm)
+{
+    rtError_t ret = stm->CreateStreamArgRes();
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel kernelMock("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+    kernelMock.SetParamTotalSize(0);
+
+    void *argsArray[2] = {nullptr, nullptr};
+    DavidArgLoaderResult result = {nullptr, nullptr, nullptr, UINT32_MAX};
+
+    ret = stm->ArgManagePtr()->LoadArgsFromArray(false, &kernelMock, argsArray, &result);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+    EXPECT_EQ(result.kerArgs, nullptr);
+    EXPECT_EQ(result.hostAddr, nullptr);
+
+    stm->ReleaseStreamArgRes();
+}
+
+static Kernel* CreateMockKernelWithParams(Program *program)
+{
+    Kernel *kernelMock = new Kernel("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+    kernelMock->SetParamTotalSize(128);
+    
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[2]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 16;
+    paramInfos[1].info.offset = 16;
+    paramInfos[1].info.size = 32;
+    kernelMock->SetHasParamSummary(true);
+    kernelMock->SetParamCount(2);
+    kernelMock->SetParamInfos(paramInfos);
+    
+    return kernelMock;
+}
+
+static void TestLoadArgsFromArrayAllocCopyPtrFailCommon(DavidStream *stm, bool needPcieMock)
+{
+    if (needPcieMock) {
+        SetupDriverMockForPcie();
+    }
+    
+    rtError_t ret = stm->CreateStreamArgRes();
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+    
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Kernel *kernelMock = CreateMockKernelWithParams(&stubProg);
+    
+    void *argsArray[2] = {(void *)0x100, (void *)0x200};
+    DavidArgLoaderResult result = {nullptr, nullptr, nullptr, UINT32_MAX};
+    
+    if (needPcieMock) {
+        PcieArgManage *argManage = static_cast<PcieArgManage*>(stm->ArgManagePtr());
+        MOCKER_CPP_VIRTUAL(argManage, &PcieArgManage::AllocCopyPtr)
+            .stubs()
+            .will(returnValue(RT_ERROR_MEMORY_ALLOCATION));
+    } else {
+        UbArgManage *argManage = static_cast<UbArgManage*>(stm->ArgManagePtr());
+        MOCKER_CPP_VIRTUAL(argManage, &UbArgManage::AllocCopyPtr)
+            .stubs()
+            .will(returnValue(RT_ERROR_MEMORY_ALLOCATION));
+    }
+    
+    ret = stm->ArgManagePtr()->LoadArgsFromArray(false, kernelMock, argsArray, &result);
+    EXPECT_EQ(ret, RT_ERROR_MEMORY_ALLOCATION);
+    
+    stm->ReleaseStreamArgRes();
+    delete kernelMock;
+}
+
 class ArgManageUbTest : public testing::Test {
 protected:
     static void SetUpTestCase()
@@ -527,19 +632,7 @@ TEST_F(ArgManagePcieTest, stream_arg_res_create)
     rtError_t ret = RT_ERROR_NONE;
     DavidStream *stm = new (std::nothrow) DavidStream(device_, 0, RT_STREAM_FAST_LAUNCH, nullptr);
 
-    Driver *drv = ((Runtime *)Runtime::Instance())->driverFactory_.GetDriver(NPU_DRIVER);
-    void *memBase = (void *)100;
-    uint32_t val = 1;
-    MOCKER_CPP_VIRTUAL(drv, &Driver::CheckSupportPcieBarCopy)
-        .stubs()
-        .with(mockcpp::any(), outBound(val), mockcpp::any())
-        .will(returnValue(RT_ERROR_NONE));
-    MOCKER_CPP_VIRTUAL(drv, &Driver::DevMemAlloc)
-        .stubs()
-        .with(outBoundP(&memBase, sizeof(memBase)), mockcpp::any(), mockcpp::any(), mockcpp::any())
-        .will(returnValue(1))
-        .then(returnValue(RT_ERROR_NONE));
-    MOCKER(memcpy_s).stubs().will(returnValue(NULL));
+    SetupDriverMockForPcieWithAllocFailure();
 
     // exception: DevMemAlloc fail
     ret = stm->CreateStreamArgRes();
@@ -554,5 +647,34 @@ TEST_F(ArgManagePcieTest, stream_arg_res_create)
     EXPECT_EQ(device_->argStreamNum_, 1);
     stm->ReleaseStreamArgRes();
 
+    delete stm;
+}
+
+TEST_F(ArgManageUbTest, UbArgManage_LoadArgsFromArray_ZeroSize)
+{
+    DavidStream *stm = new (std::nothrow) DavidStream(device_, 0, RT_STREAM_DEFAULT, nullptr);
+    TestLoadArgsFromArrayZeroSizeCommon(stm);
+    delete stm;
+}
+
+TEST_F(ArgManagePcieTest, PcieArgManage_LoadArgsFromArray_ZeroSize)
+{
+    DavidStream *stm = new (std::nothrow) DavidStream(device_, 0, RT_STREAM_DEFAULT, nullptr);
+    SetupDriverMockForPcie();
+    TestLoadArgsFromArrayZeroSizeCommon(stm);
+    delete stm;
+}
+
+TEST_F(ArgManagePcieTest, PcieArgManage_LoadArgsFromArray_AllocCopyPtrFail)
+{
+    DavidStream *stm = new (std::nothrow) DavidStream(device_, 0, RT_STREAM_DEFAULT, nullptr);
+    TestLoadArgsFromArrayAllocCopyPtrFailCommon(stm, true);
+    delete stm;
+}
+
+TEST_F(ArgManageUbTest, UbArgManage_LoadArgsFromArray_AllocCopyPtrFail)
+{
+    DavidStream *stm = new (std::nothrow) DavidStream(device_, 0, RT_STREAM_DEFAULT, nullptr);
+    TestLoadArgsFromArrayAllocCopyPtrFailCommon(stm, false);
     delete stm;
 }

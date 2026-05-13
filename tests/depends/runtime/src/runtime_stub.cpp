@@ -1113,6 +1113,17 @@ rtError_t aclStub::rtsLaunchKernelWithHostArgs(rtFuncHandle funcHandle, uint32_t
   return RT_ERROR_NONE;
 }
 
+rtError_t aclStub::rtLaunchKernelWithArgsArray(void *func, uint32_t numBlocks, rtStream_t stream,
+                                               rtKernelLaunchCfg_t *cfg, void **argsArray)
+{
+  (void)func;
+  (void)numBlocks;
+  (void)stream;
+  (void)cfg;
+  (void)argsArray;
+  return RT_ERROR_NONE;
+}
+
 rtError_t aclStub::rtMemExportToShareableHandle(rtDrvMemHandle handle, rtDrvMemHandleType handleType,
                                                 uint64_t flag, uint64_t *shareableHandle)
 {
@@ -1364,6 +1375,28 @@ rtError_t aclStub::rtFunctionGetBinary(const rtFuncHandle funcHandle, rtBinHandl
 {
     (void)funcHandle;
     (void)binHandle;
+    return RT_ERROR_NONE;
+}
+
+rtError_t aclStub::rtFunctionGetParamCount(const void *func, size_t *paramCount)
+{
+    (void)func;
+    if (paramCount != nullptr) {
+        *paramCount = 0;
+    }
+    return RT_ERROR_NONE;
+}
+
+rtError_t aclStub::rtFunctionGetParamInfo(const void *func, size_t paramIndex, size_t *paramOffset, size_t *paramSize)
+{
+    (void)func;
+    (void)paramIndex;
+    if (paramOffset != nullptr) {
+        *paramOffset = 0;
+    }
+    if (paramSize != nullptr) {
+        *paramSize = 0;
+    }
     return RT_ERROR_NONE;
 }
 
@@ -3537,6 +3570,12 @@ rtError_t rtsLaunchKernelWithHostArgs(rtFuncHandle funcHandle, uint32_t numBlock
                                                                          placeHolderArray, placeHolderNum);
 }
 
+rtError_t rtLaunchKernelWithArgsArray(void *func, uint32_t numBlocks, rtStream_t stream,
+                                      rtKernelLaunchCfg_t *cfg, void **argsArray)
+{
+  return MockFunctionTest::aclStubInstance().rtLaunchKernelWithArgsArray(func, numBlocks, stream, cfg, argsArray);
+}
+
 rtError_t rtMemExportToShareableHandle(rtDrvMemHandle handle, rtDrvMemHandleType handleType,
                                        uint64_t flag, uint64_t *shareableHandle)
 {
@@ -3718,6 +3757,16 @@ rtError_t rtFunctionGetAttribute(rtFuncHandle funcHandle, rtFuncAttribute attrTy
 rtError_t rtFunctionGetBinary(const rtFuncHandle funcHandle, rtBinHandle *binHandle)
 {
     return MockFunctionTest::aclStubInstance().rtFunctionGetBinary(funcHandle, binHandle);
+}
+
+rtError_t rtFunctionGetParamCount(const void *func, size_t *paramCount)
+{
+    return MockFunctionTest::aclStubInstance().rtFunctionGetParamCount(func, paramCount);
+}
+
+rtError_t rtFunctionGetParamInfo(const void *func, size_t paramIndex, size_t *paramOffset, size_t *paramSize)
+{
+    return MockFunctionTest::aclStubInstance().rtFunctionGetParamInfo(func, paramIndex, paramOffset, paramSize);
 }
 
 rtError_t rtModelDebugDotPrint(rtModel_t mdl)

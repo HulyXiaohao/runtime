@@ -27,6 +27,7 @@
 #include "thread_local_container.hpp"
 
 #include "elf.hpp"
+#include "data/elf.h"
 
 using namespace testing;
 using namespace cce::runtime;
@@ -1017,8 +1018,6 @@ TEST_F(ELFTest, UpdateKernelsInfo)
     EXPECT_EQ(rtn, RT_ERROR_NONE);
     delete [] newKernels.name;
     delete kernelInfo;
-    kernelInfo = NULL;
-
 }
  
 TEST_F(ELFTest, SymbolAddress)
@@ -1112,4 +1111,236 @@ TEST_F(ELFTest, SymbolAddress)
  
     delete elfData;
     elfData = nullptr;
+}
+
+TEST_F(ELFTest, UpdateKernelsInfo_NoParamSummary)
+{
+    rtElfData elfData = {};
+    elfData.kernel_num = 1;
+    
+    RtKernel newKernels;
+    newKernels.name = new (std::nothrow) char[5];
+    strcpy_s(newKernels.name, 5, "test");
+    newKernels.offset = 0;
+    newKernels.length = 1;
+    newKernels.metaInfo.funcType = 1;
+    newKernels.metaInfo.crossCoreSync = 1;
+    newKernels.metaInfo.taskRation = 1;
+    newKernels.metaInfo.dfxSize = 1;
+    newKernels.metaInfo.paramInfos = nullptr;
+    newKernels.metaInfo.paramCount = 0U;
+    newKernels.metaInfo.paramTotalSize = 0ULL;
+    newKernels.metaInfo.hasParamSummary = false;
+    
+    ElfKernelInfo * kernelInfo = new (std::nothrow) ElfKernelInfo();
+    if (kernelInfo == nullptr) {
+        delete [] newKernels.name;
+        return;
+    }
+    kernelInfo->funcType = KERNEL_FUNCTION_TYPE_INVALID;
+    kernelInfo->crossCoreSync = FUNC_NO_USE_SYNC;
+    kernelInfo->taskRation[0] = 0U;
+    kernelInfo->taskRation[1] = 0U;
+    kernelInfo->dfxAddr = nullptr;
+    kernelInfo->dfxSize = 0ULL;
+    kernelInfo->hasParamSummary = false;
+    kernelInfo->paramCount = 0U;
+    
+    std::map<std::string, ElfKernelInfo *> kernelInfoMap;
+    std::string kernelName = "test-no-param-summary";
+    kernelInfoMap[kernelName] = kernelInfo;
+    
+    rtError_t rtn = UpdateKernelsInfo(kernelInfoMap, &newKernels, &elfData);
+    EXPECT_EQ(rtn, RT_ERROR_NONE);
+    EXPECT_EQ(newKernels.metaInfo.hasParamSummary, false);
+    EXPECT_EQ(newKernels.metaInfo.paramCount, 0U);
+    EXPECT_EQ(newKernels.metaInfo.paramInfos.get(), nullptr);
+    
+    delete [] newKernels.name;
+    delete kernelInfo;
+}
+
+
+
+TEST_F(ELFTest, UpdateKernelsInfo_Success)
+{
+    rtElfData elfData = {};
+    elfData.kernel_num = 1;
+    
+    RtKernel newKernels;
+    newKernels.name = new (std::nothrow) char[19];
+    strcpy_s(newKernels.name, 19, "test-param-success");
+    newKernels.offset = 0;
+    newKernels.length = 1;
+    newKernels.metaInfo.funcType = 1;
+    newKernels.metaInfo.crossCoreSync = 1;
+    newKernels.metaInfo.taskRation = 1;
+    newKernels.metaInfo.dfxSize = 1;
+    
+    ElfKernelInfo * kernelInfo = new (std::nothrow) ElfKernelInfo();
+    if (kernelInfo == nullptr) {
+        delete [] newKernels.name;
+        return;
+    }
+    kernelInfo->funcType = KERNEL_FUNCTION_TYPE_INVALID;
+    kernelInfo->crossCoreSync = FUNC_NO_USE_SYNC;
+    kernelInfo->taskRation[0] = 0U;
+    kernelInfo->taskRation[1] = 0U;
+    kernelInfo->dfxAddr = nullptr;
+    kernelInfo->dfxSize = 0ULL;
+    kernelInfo->hasParamSummary = true;
+    kernelInfo->paramCount = 2U;
+    kernelInfo->paramTotalSize = 48ULL;
+    
+    ElfParamInfo paramInfo1 = {};
+    paramInfo1.info.ordinal = 0;
+    paramInfo1.info.offset = 0;
+    paramInfo1.info.size = 16;
+    kernelInfo->cachedParamInfos.push_back(paramInfo1);
+    
+    ElfParamInfo paramInfo2 = {};
+    paramInfo2.info.ordinal = 1;
+    paramInfo2.info.offset = 16;
+    paramInfo2.info.size = 32;
+    kernelInfo->cachedParamInfos.push_back(paramInfo2);
+    
+    std::map<std::string, ElfKernelInfo *> kernelInfoMap;
+    std::string kernelName = "test-param-success";
+    kernelInfoMap[kernelName] = kernelInfo;
+    
+    rtError_t rtn = UpdateKernelsInfo(kernelInfoMap, &newKernels, &elfData);
+    EXPECT_EQ(rtn, RT_ERROR_NONE);
+    EXPECT_EQ(newKernels.metaInfo.hasParamSummary, true);
+    EXPECT_EQ(newKernels.metaInfo.paramCount, 2U);
+    EXPECT_EQ(newKernels.metaInfo.paramTotalSize, 48ULL);
+    EXPECT_NE(newKernels.metaInfo.paramInfos.get(), nullptr);
+    
+    delete [] newKernels.name;
+    delete kernelInfo;
+}
+
+TEST_F(ELFTest, ElfParseParamSummary_Success)
+{
+    rtElfData *elfData = new rtElfData;
+    (void)ProcessObject((char_t *)elf_o, elfData);
+
+    uint8_t paramSummaryBuf[64] = {0};
+    ElfParamSummary paramSummary = {};
+    paramSummary.head.type = FUNC_META_TYPE_PARAM_SUMMARY;
+    paramSummary.head.length = sizeof(uint32_t) + sizeof(uint64_t);
+    paramSummary.paraNums = 5U;
+    paramSummary.paramTotalSize = 256ULL;
+
+    errno_t ret = memcpy_s(paramSummaryBuf, sizeof(paramSummaryBuf), &paramSummary, sizeof(ElfParamSummary));
+    EXPECT_EQ(ret, EOK);
+
+    ElfKernelInfo kernelInfo = {};
+    GetKernelTlvInfo(paramSummaryBuf, sizeof(ElfParamSummary), &kernelInfo);
+    EXPECT_EQ(kernelInfo.hasParamSummary, true);
+    EXPECT_EQ(kernelInfo.paramCount, 5U);
+    EXPECT_EQ(kernelInfo.paramTotalSize, 256ULL);
+
+    if (elfData->section_headers != nullptr) {
+        delete [] elfData->section_headers;
+    }
+    delete elfData;
+}
+
+TEST_F(ELFTest, ElfParseParamInfo_Success)
+{
+    rtElfData *elfData = new rtElfData;
+    (void)ProcessObject((char_t *)elf_o, elfData);
+
+    uint8_t paramInfoBuf[64] = {0};
+    ElfParamInfo paramInfo = {};
+    paramInfo.head.type = FUNC_META_TYPE_PARAM_INFO;
+    paramInfo.head.length = sizeof(ElfParamBody);
+    paramInfo.info.index = 2U;
+    paramInfo.info.ordinal = 3U;
+    paramInfo.info.offset = 128U;
+    paramInfo.info.size = 64U;
+    paramInfo.info.align = 8U;
+    paramInfo.info.paramType = 1U;
+    paramInfo.info.spaceIndex = 0U;
+    paramInfo.info.spaceType = 0U;
+    paramInfo.info.space = 0U;
+    paramInfo.info.resv = 0U;
+
+    errno_t ret = memcpy_s(paramInfoBuf, sizeof(paramInfoBuf), &paramInfo, sizeof(ElfParamInfo));
+    EXPECT_EQ(ret, EOK);
+
+    ElfKernelInfo kernelInfo = {};
+    GetKernelTlvInfo(paramInfoBuf, sizeof(ElfParamInfo), &kernelInfo);
+    EXPECT_EQ(kernelInfo.cachedParamInfos.size(), 1U);
+    if (kernelInfo.cachedParamInfos.size() > 0) {
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.index, 2U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.ordinal, 3U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.offset, 128U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.size, 64U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.align, 8U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.paramType, 1U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.spaceIndex, 0U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.spaceType, 0U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.space, 0U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.resv, 0U);
+    }
+
+    if (elfData->section_headers != nullptr) {
+        delete [] elfData->section_headers;
+    }
+    delete elfData;
+}
+
+TEST_F(ELFTest, GetKernelTlvInfo_MultipleTlv)
+{
+    rtElfData *elfData = new rtElfData;
+    (void)ProcessObject((char_t *)elf_o, elfData);
+
+    uint8_t multiTlvBuf[128] = {0};
+    uint8_t *curBuf = multiTlvBuf;
+    uint32_t offset = 0;
+
+    ElfParamSummary paramSummary = {};
+    paramSummary.head.type = FUNC_META_TYPE_PARAM_SUMMARY;
+    paramSummary.head.length = sizeof(uint32_t) + sizeof(uint64_t);
+    paramSummary.paraNums = 2U;
+    paramSummary.paramTotalSize = 80ULL;
+    memcpy_s(curBuf + offset, 128 - offset, &paramSummary, sizeof(ElfParamSummary));
+    offset += sizeof(ElfParamSummary);
+
+    ElfParamInfo paramInfo1 = {};
+    paramInfo1.head.type = FUNC_META_TYPE_PARAM_INFO;
+    paramInfo1.head.length = sizeof(ElfParamBody);
+    paramInfo1.info.ordinal = 0U;
+    paramInfo1.info.offset = 0U;
+    paramInfo1.info.size = 32U;
+    memcpy_s(curBuf + offset, 128 - offset, &paramInfo1, sizeof(ElfParamInfo));
+    offset += sizeof(ElfParamInfo);
+
+    ElfParamInfo paramInfo2 = {};
+    paramInfo2.head.type = FUNC_META_TYPE_PARAM_INFO;
+    paramInfo2.head.length = sizeof(ElfParamBody);
+    paramInfo2.info.ordinal = 1U;
+    paramInfo2.info.offset = 32U;
+    paramInfo2.info.size = 48U;
+    memcpy_s(curBuf + offset, 128 - offset, &paramInfo2, sizeof(ElfParamInfo));
+    offset += sizeof(ElfParamInfo);
+
+    ElfKernelInfo kernelInfo = {};
+    GetKernelTlvInfo(multiTlvBuf, offset, &kernelInfo);
+    EXPECT_EQ(kernelInfo.hasParamSummary, true);
+    EXPECT_EQ(kernelInfo.paramCount, 2U);
+    EXPECT_EQ(kernelInfo.paramTotalSize, 80ULL);
+    EXPECT_EQ(kernelInfo.cachedParamInfos.size(), 2U);
+    if (kernelInfo.cachedParamInfos.size() >= 2) {
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.offset, 0U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[0].info.size, 32U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[1].info.offset, 32U);
+        EXPECT_EQ(kernelInfo.cachedParamInfos[1].info.size, 48U);
+    }
+
+    if (elfData->section_headers != nullptr) {
+        delete [] elfData->section_headers;
+    }
+    delete elfData;
 }

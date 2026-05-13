@@ -19,6 +19,7 @@ namespace runtime {
 
 class Stream;
 class Device;
+class Kernel;
 
 constexpr uint8_t DAVID_ARG_STREAM_NUM_MAX = 8U;
 constexpr uint32_t DAVID_ARG_POOL_SQ_SIZE = 1024U;
@@ -83,15 +84,18 @@ public:
 
     virtual rtError_t H2DArgCopy(const DavidArgLoaderResult * const result, void * const args, const uint32_t size) = 0;
 
+    virtual rtError_t LoadArgsFromArray(const bool useArgPool,
+        const Kernel *kernel, void **argsArray, DavidArgLoaderResult *result) = 0;
+
     uint32_t argPoolSize_{0U};
     void *devArgResBaseAddr_{nullptr};
     void *hostArgResBaseAddr_{nullptr};
 
 protected:
     Stream *stream_;
+    void FreeFail(DavidArgLoaderResult * const result);
 
 private:
-    void FreeFail(DavidArgLoaderResult * const result);
 
     rtError_t LoadInputOutputArgs(const DavidArgLoaderResult * const result, const rtArgsEx_t * const argsInfo);
     rtError_t LoadInputOutputArgs(const DavidArgLoaderResult * const result, const rtAicpuArgsEx_t * const argsInfo);
@@ -113,6 +117,8 @@ public:
     rtError_t AllocCopyPtr(const uint32_t size, const bool useArgPool, DavidArgLoaderResult * const result) override;
     rtError_t H2DArgCopy(const DavidArgLoaderResult * const result, void * const args, const uint32_t size) override;
     void RecycleDevLoader(void * const handle) override;
+    rtError_t LoadArgsFromArray(const bool useArgPool,
+        const Kernel *kernel, void **argsArray, DavidArgLoaderResult *result) override;
 private:
     struct memTsegInfo memTsegInfo_;
     rtError_t ParseArgsCpyWqe(const DavidArgLoaderResult * const result, const uint32_t size) const;
@@ -128,6 +134,8 @@ public:
     rtError_t AllocCopyPtr(const uint32_t size, const bool useArgPool, DavidArgLoaderResult * const result) override;
     rtError_t H2DArgCopy(const DavidArgLoaderResult * const result, void * const args, const uint32_t size) override;
     void RecycleDevLoader(void * const handle) override;
+    rtError_t LoadArgsFromArray(const bool useArgPool,
+        const Kernel *kernel, void **argsArray, DavidArgLoaderResult *result) override;
 private:
 };
 

@@ -421,6 +421,44 @@ public:
     {
         return funcEntryType_;
     }
+
+    bool HasParamSummary() const
+    {
+        return hasParamSummary_;
+    }
+
+    uint32_t GetParamCount() const
+    {
+        return paramCount_;
+    }
+
+    void SetParamTotalSize(uint64_t size)
+    {
+        paramTotalSize_ = size;
+    }
+
+    uint64_t GetParamTotalSize() const
+    {
+        return paramTotalSize_;
+    }
+
+    void SetParamInfos(std::shared_ptr<ElfParamInfo[]> paramInfos)
+    {
+        paramInfos_ = paramInfos;
+    }
+
+    void SetParamCount(uint32_t paramCount)
+    {
+        paramCount_ = paramCount;
+    }
+
+    void SetHasParamSummary(bool hasParamSummary)
+    {
+        hasParamSummary_ = hasParamSummary;
+    }
+
+    rtError_t GetParamInfo(uint32_t paramIndex, uint32_t *paramOffset, uint32_t *paramSize) const;
+
 private:
     Program *program_;
     uint32_t aicpuKernelType_ = static_cast<uint32_t>(KERNEL_TYPE_RESERVED);
@@ -458,6 +496,10 @@ private:
     uint32_t schedMode_{static_cast<uint32_t>(RT_SCHEM_MODE_NORMAL)};
     KernelRegisterType kernelRegisterType_ = KernelRegisterType::RT_KERNEL_REG_TYPE_NON_CPU;
     KernelFunctionEntryType funcEntryType_ = KernelFunctionEntryType::KERNEL_TYPE_TILING_KEY;
+    std::shared_ptr<ElfParamInfo[]> paramInfos_;
+    uint32_t paramCount_ = 0U;
+    uint64_t paramTotalSize_ = 0ULL;
+    bool hasParamSummary_ = false;
 
     // user for cpu Kernel
     std::string cpuOpType_;
@@ -535,6 +577,7 @@ rtError_t GetPrefetchCnt(Kernel * const kernel);
 
 rtError_t GetPrefetchCntAndMixTypeWithKernel(const Kernel * const kernelPtr,
     uint32_t &icachePrefetchCnt1, uint32_t &icachePrefetchCnt2, uint8_t &mixType);
+
 }
 }
 

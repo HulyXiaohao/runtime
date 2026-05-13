@@ -9,6 +9,7 @@
  */
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
+#include "acl_base_rt.h"
 #define private public
 #include "config.h"
 #include "runtime.hpp"
@@ -16,12 +17,14 @@
 #include "rt_error_codes.h"
 #include "api_impl.hpp"
 #include "api_decorator.hpp"
+#include "api_error.hpp"
 #include "api_profile_log_decorator.hpp"
 #include "api_profile_decorator.hpp"
 #include "dev.h"
 #include "profiler.hpp"
 #include "binary_loader.hpp"
 #include "thread_local_container.hpp"
+#include "inner_kernel.h"
 #undef private
 
 
@@ -53,6 +56,34 @@ protected:
         rtDeviceReset(0);
     }
 };
+
+namespace {
+    Kernel* CreateTestKernelForCheckArgs(rtKernelAttrType attrType,
+                                         KernelRegisterType regType,
+                                         bool hasParamSummary,
+                                         size_t paramCount = 0) {
+        ElfProgram* program = new ElfProgram(attrType);
+        uint64_t tilingKey = 0;
+        Kernel* kernel = new Kernel("testKernel", tilingKey, program, attrType,
+                                    2048, 1024, 0, 0, 0);
+        kernel->SetKernelRegisterType(regType);
+        kernel->SetHasParamSummary(hasParamSummary);
+        if (paramCount > 0) {
+            kernel->SetParamCount(paramCount);
+        }
+        return kernel;
+    }
+
+    void DestroyTestKernel(Kernel* kernel) {
+        if (kernel != nullptr) {
+            Program* program = kernel->Program_();
+            delete kernel;
+            if (program != nullptr) {
+                delete program;
+            }
+        }
+    }
+}
 
 TEST_F(ApiKernelTest, TestRtsBinaryLoadFromFileSuccess)
 {
@@ -463,4 +494,414 @@ TEST_F(ApiKernelTest, TestFuncGetSchedMode)
         &attrValue);
     EXPECT_EQ(error, RT_ERROR_NONE);
     EXPECT_EQ(attrValue, 1);
+}
+
+TEST_F(ApiKernelTest, TestRtLaunchKernelWithArgsArray_ParamCheck)
+{
+    uint32_t numBlocks = 1;
+    rtStream_t stm = nullptr;
+    rtKernelLaunchCfg_t cfg = {};
+    void *argsArray[2] = {(void *)0x10, (void *)0x20};
+
+    rtError_t error = rtLaunchKernelWithArgsArray(nullptr, numBlocks, stm, &cfg, argsArray);
+    EXPECT_EQ(error, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(ApiKernelTest, TestRtLaunchKernelWithArgsArray_ApiImplSuccess)
+{
+    ApiImpl apiImpl;
+    MOCKER(Api::Instance).stubs().will(returnValue(static_cast<Api *>(&apiImpl)));
+    MOCKER_CPP_VIRTUAL(apiImpl, &ApiImpl::LaunchKernelV2).stubs().will(returnValue(RT_ERROR_NONE));
+
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+
+    uint32_t numBlocks = 1;
+    rtStream_t stm = nullptr;
+    rtKernelLaunchCfg_t cfg = {};
+    void *argsArray[2] = {(void *)0x10, (void *)0x20};
+
+    rtError_t error = rtLaunchKernelWithArgsArray(static_cast<void *>(&kernel), numBlocks, stm, &cfg, argsArray);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+}
+
+TEST_F(ApiKernelTest, TestRtLaunchKernelWithArgsArray_ApiImplKernelInvalid)
+{
+    ApiImpl apiImpl;
+    MOCKER(Api::Instance).stubs().will(returnValue(static_cast<Api *>(&apiImpl)));
+    MOCKER_CPP_VIRTUAL(apiImpl, &ApiImpl::LaunchKernelV2).stubs().will(returnValue(RT_ERROR_KERNEL_INVALID));
+
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+
+    uint32_t numBlocks = 1;
+    rtStream_t stm = nullptr;
+    rtKernelLaunchCfg_t cfg = {};
+    void *argsArray[2] = {(void *)0x10, (void *)0x20};
+
+    rtError_t error = rtLaunchKernelWithArgsArray(static_cast<void *>(&kernel), numBlocks, stm, &cfg, argsArray);
+    EXPECT_EQ(error, ACL_ERROR_RT_INVALID_HANDLE);
+}
+
+TEST_F(ApiKernelTest, TestRtLaunchKernelWithArgsArray_ApiImplFeatureNotSupport)
+{
+    ApiImpl apiImpl;
+    MOCKER(Api::Instance).stubs().will(returnValue(static_cast<Api *>(&apiImpl)));
+    MOCKER_CPP_VIRTUAL(apiImpl, &ApiImpl::LaunchKernelV2).stubs().will(returnValue(RT_ERROR_FEATURE_NOT_SUPPORT));
+
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+
+    uint32_t numBlocks = 1;
+    rtStream_t stm = nullptr;
+    rtKernelLaunchCfg_t cfg = {};
+    void *argsArray[2] = {(void *)0x10, (void *)0x20};
+
+    rtError_t error = rtLaunchKernelWithArgsArray(static_cast<void *>(&kernel), numBlocks, stm, &cfg, argsArray);
+    EXPECT_EQ(error, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+}
+
+TEST_F(ApiKernelTest, TestRtLaunchKernelWithArgsArray_ApiImplOtherError)
+{
+    ApiImpl apiImpl;
+    MOCKER(Api::Instance).stubs().will(returnValue(static_cast<Api *>(&apiImpl)));
+    MOCKER_CPP_VIRTUAL(apiImpl, &ApiImpl::LaunchKernelV2).stubs().will(returnValue(RT_ERROR_INVALID_VALUE));
+
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+
+    uint32_t numBlocks = 1;
+    rtStream_t stm = nullptr;
+    rtKernelLaunchCfg_t cfg = {};
+    void *argsArray[2] = {(void *)0x10, (void *)0x20};
+
+    rtError_t error = rtLaunchKernelWithArgsArray(static_cast<void *>(&kernel), numBlocks, stm, &cfg, argsArray);
+    EXPECT_EQ(error, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamCount_ParamCheck)
+{
+    size_t paramCount = 0;
+
+    rtError_t error = rtFunctionGetParamCount(nullptr, &paramCount);
+    EXPECT_NE(error, RT_ERROR_NONE);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamCount_ApiImplSuccess)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+    kernel.SetHasParamSummary(true);
+    kernel.SetParamCount(3);
+
+    size_t paramCount = 0;
+    ApiImpl apiImpl;
+    MOCKER(Api::Instance).stubs().will(returnValue(static_cast<Api *>(&apiImpl)));
+    MOCKER_CPP_VIRTUAL(apiImpl, &ApiImpl::FunctionGetParamCount).stubs().will(returnValue(RT_ERROR_NONE));
+
+    rtError_t error = rtFunctionGetParamCount(static_cast<const void *>(&kernel), &paramCount);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamCount_ApiImplFeatureNotSupport)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+
+    size_t paramCount = 0;
+    ApiImpl apiImpl;
+    MOCKER(Api::Instance).stubs().will(returnValue(static_cast<Api *>(&apiImpl)));
+    MOCKER_CPP_VIRTUAL(apiImpl, &ApiImpl::FunctionGetParamCount).stubs().will(returnValue(RT_ERROR_FEATURE_NOT_SUPPORT));
+
+    rtError_t error = rtFunctionGetParamCount(static_cast<const void *>(&kernel), &paramCount);
+    EXPECT_EQ(error, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamCount_ApiImplOtherError)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+
+    size_t paramCount = 0;
+    ApiImpl apiImpl;
+    MOCKER(Api::Instance).stubs().will(returnValue(static_cast<Api *>(&apiImpl)));
+    MOCKER_CPP_VIRTUAL(apiImpl, &ApiImpl::FunctionGetParamCount).stubs().will(returnValue(RT_ERROR_INVALID_VALUE));
+
+    rtError_t error = rtFunctionGetParamCount(static_cast<const void *>(&kernel), &paramCount);
+    EXPECT_EQ(error, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamInfo_ParamCheck)
+{
+    size_t paramIndex = 0;
+    size_t paramOffset = 0;
+    size_t paramSize = 0;
+
+    rtError_t error = rtFunctionGetParamInfo(nullptr, paramIndex, &paramOffset, &paramSize);
+    EXPECT_NE(error, RT_ERROR_NONE);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamInfo_ApiImplSuccess)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+
+    size_t paramIndex = 0;
+    size_t paramOffset = 0;
+    size_t paramSize = 0;
+    ApiImpl apiImpl;
+    MOCKER(Api::Instance).stubs().will(returnValue(static_cast<Api *>(&apiImpl)));
+    MOCKER_CPP_VIRTUAL(apiImpl, &ApiImpl::FunctionGetParamInfo).stubs().will(returnValue(RT_ERROR_NONE));
+
+    rtError_t error = rtFunctionGetParamInfo(static_cast<const void *>(&kernel), paramIndex, &paramOffset, &paramSize);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamInfo_ApiImplFeatureNotSupport)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+
+    size_t paramIndex = 0;
+    size_t paramOffset = 0;
+    size_t paramSize = 0;
+    ApiImpl apiImpl;
+    MOCKER(Api::Instance).stubs().will(returnValue(static_cast<Api *>(&apiImpl)));
+    MOCKER_CPP_VIRTUAL(apiImpl, &ApiImpl::FunctionGetParamInfo).stubs().will(returnValue(RT_ERROR_FEATURE_NOT_SUPPORT));
+
+    rtError_t error = rtFunctionGetParamInfo(static_cast<const void *>(&kernel), paramIndex, &paramOffset, &paramSize);
+    EXPECT_EQ(error, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamInfo_ApiImplOtherError)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+
+    size_t paramIndex = 0;
+    size_t paramOffset = 0;
+    size_t paramSize = 0;
+    ApiImpl apiImpl;
+    MOCKER(Api::Instance).stubs().will(returnValue(static_cast<Api *>(&apiImpl)));
+    MOCKER_CPP_VIRTUAL(apiImpl, &ApiImpl::FunctionGetParamInfo).stubs().will(returnValue(RT_ERROR_INVALID_VALUE));
+
+    rtError_t error = rtFunctionGetParamInfo(static_cast<const void *>(&kernel), paramIndex, &paramOffset, &paramSize);
+    EXPECT_EQ(error, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamCount_NullParamCount)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+    kernel.SetHasParamSummary(true);
+    
+    rtError_t error = rtFunctionGetParamCount(static_cast<const void *>(&kernel), nullptr);
+    EXPECT_EQ(error, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamCount_CpuKernelNoParamSummary)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICPU);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICPU, 2048, 1024, 0, 0, 0);
+    kernel.SetKernelRegisterType(RT_KERNEL_REG_TYPE_CPU);
+    kernel.SetHasParamSummary(false);
+    
+    size_t paramCount = 0;
+    rtError_t error = rtFunctionGetParamCount(static_cast<const void *>(&kernel), &paramCount);
+    EXPECT_EQ(error, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamCount_KernelNoParamSummary)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+    kernel.SetHasParamSummary(false);
+    
+    size_t paramCount = 0;
+    rtError_t error = rtFunctionGetParamCount(static_cast<const void *>(&kernel), &paramCount);
+    EXPECT_EQ(error, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamCount_Success_RealDecorator)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+    kernel.SetHasParamSummary(true);
+    kernel.SetParamCount(5);
+    
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[5]);
+    for (size_t i = 0; i < 5; i++) {
+        paramInfos[i].info.offset = i * 32;
+        paramInfos[i].info.size = 32;
+    }
+    kernel.SetParamInfos(paramInfos);
+    
+    size_t paramCount = 0;
+    rtError_t error = rtFunctionGetParamCount(static_cast<const void *>(&kernel), &paramCount);
+    EXPECT_EQ(error, ACL_RT_SUCCESS);
+    EXPECT_EQ(paramCount, 5);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamInfo_NullParamOffset)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+    kernel.SetHasParamSummary(true);
+    
+    size_t paramSize = 0;
+    rtError_t error = rtFunctionGetParamInfo(static_cast<const void *>(&kernel), 0, nullptr, &paramSize);
+    EXPECT_EQ(error, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamInfo_NullParamSize)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+    kernel.SetHasParamSummary(true);
+    
+    size_t paramOffset = 0;
+    rtError_t error = rtFunctionGetParamInfo(static_cast<const void *>(&kernel), 0, &paramOffset, nullptr);
+    EXPECT_EQ(error, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamInfo_BothOutputNull)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+    kernel.SetHasParamSummary(true);
+    
+    rtError_t error = rtFunctionGetParamInfo(static_cast<const void *>(&kernel), 0, nullptr, nullptr);
+    EXPECT_EQ(error, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamInfo_CpuKernelNoParamSummary)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICPU);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICPU, 2048, 1024, 0, 0, 0);
+    kernel.SetKernelRegisterType(RT_KERNEL_REG_TYPE_CPU);
+    kernel.SetHasParamSummary(false);
+    
+    size_t paramOffset = 0;
+    size_t paramSize = 0;
+    rtError_t error = rtFunctionGetParamInfo(static_cast<const void *>(&kernel), 0, &paramOffset, &paramSize);
+    EXPECT_EQ(error, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamInfo_KernelNoParamSummary)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+    kernel.SetHasParamSummary(false);
+    
+    size_t paramOffset = 0;
+    size_t paramSize = 0;
+    rtError_t error = rtFunctionGetParamInfo(static_cast<const void *>(&kernel), 0, &paramOffset, &paramSize);
+    EXPECT_EQ(error, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(ApiKernelTest, TestRtFunctionGetParamInfo_Success_RealDecorator)
+{
+    ElfProgram program(RT_KERNEL_ATTR_TYPE_AICORE);
+    uint64_t tilingKey = 0;
+    Kernel kernel("testKernel", tilingKey, &program, RT_KERNEL_ATTR_TYPE_AICORE, 2048, 1024, 0, 0, 0);
+    kernel.SetHasParamSummary(true);
+    kernel.SetParamCount(3);
+    
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[3]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 64;
+    paramInfos[1].info.offset = 64;
+    paramInfos[1].info.size = 128;
+    paramInfos[2].info.offset = 192;
+    paramInfos[2].info.size = 256;
+    kernel.SetParamInfos(paramInfos);
+    
+    size_t paramOffset = 0;
+    size_t paramSize = 0;
+    rtError_t error = rtFunctionGetParamInfo(static_cast<const void *>(&kernel), 1, &paramOffset, &paramSize);
+    EXPECT_EQ(error, ACL_RT_SUCCESS);
+    EXPECT_EQ(paramOffset, 64);
+    EXPECT_EQ(paramSize, 128);
+}
+
+TEST_F(ApiKernelTest, TestRtCheckArgsWithType_CpuKernelArgsArray)
+{
+    ApiImpl impl;
+    ApiErrorDecorator apiError(&impl);
+
+    Kernel* kernel = CreateTestKernelForCheckArgs(
+        RT_KERNEL_ATTR_TYPE_AICPU,
+        RT_KERNEL_REG_TYPE_CPU,
+        false
+    );
+
+    RtArgsWithType argsWithType;
+    argsWithType.type = RT_ARGS_ARRAY;
+    argsWithType.args.argsArrayInfo = nullptr;
+
+    rtError_t error = apiError.CheckArgsWithType(kernel, &argsWithType);
+    EXPECT_EQ(error, RT_ERROR_FEATURE_NOT_SUPPORT);
+
+    DestroyTestKernel(kernel);
+}
+
+TEST_F(ApiKernelTest, TestRtCheckArgsWithType_KernelNoParamSummary)
+{
+    ApiImpl impl;
+    ApiErrorDecorator apiError(&impl);
+
+    Kernel* kernel = CreateTestKernelForCheckArgs(
+        RT_KERNEL_ATTR_TYPE_AICORE,
+        RT_KERNEL_REG_TYPE_NON_CPU,
+        false
+    );
+
+    RtArgsWithType argsWithType;
+    argsWithType.type = RT_ARGS_ARRAY;
+
+    rtError_t error = apiError.CheckArgsWithType(kernel, &argsWithType);
+    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
+
+    DestroyTestKernel(kernel);
+}
+
+TEST_F(ApiKernelTest, TestRtCheckArgsWithType_ParamCountPositiveNullArgsArrayInfo)
+{
+    ApiImpl impl;
+    ApiErrorDecorator apiError(&impl);
+
+    Kernel* kernel = CreateTestKernelForCheckArgs(
+        RT_KERNEL_ATTR_TYPE_AICORE,
+        RT_KERNEL_REG_TYPE_NON_CPU,
+        true,
+        5
+    );
+
+    RtArgsWithType argsWithType;
+    argsWithType.type = RT_ARGS_ARRAY;
+    argsWithType.args.argsArrayInfo = nullptr;
+
+    rtError_t error = apiError.CheckArgsWithType(kernel, &argsWithType);
+    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
+
+    DestroyTestKernel(kernel);
 }

@@ -1044,6 +1044,10 @@ void ElfProgram::SetKernelAttribute(const RtKernel * const kernel, Kernel * cons
     kernelObj->SetTaskRation(metaInfo->taskRation);
     kernelObj->SetSchedMode(metaInfo->schedMode);
     kernelObj->SetFunctionEntryType(metaInfo->funcEntryType);
+    kernelObj->SetParamTotalSize(metaInfo->paramTotalSize);
+    kernelObj->SetParamInfos(metaInfo->paramInfos);
+    kernelObj->SetParamCount(metaInfo->paramCount);
+    kernelObj->SetHasParamSummary(metaInfo->hasParamSummary);
 
     uint16_t sysParamNum = 0U;
     if (kernelObj->IsSupportOverFlow()) {

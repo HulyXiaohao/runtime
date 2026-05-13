@@ -12,6 +12,8 @@
 #include "device.hpp"
 #include "stream.hpp"
 #include "arg_manage_david.hpp"
+#include "kernel.hpp"
+#include "kernel_utils.hpp"
 
 namespace cce {
 namespace runtime {
@@ -123,6 +125,33 @@ rtError_t UbArgManage::H2DArgCopy(const DavidArgLoaderResult * const result, voi
 void UbArgManage::RecycleDevLoader(void * const handle)
 {
     (void)stream_->Device_()->UbArgLoaderPtr()->Release(handle);
+}
+
+rtError_t UbArgManage::LoadArgsFromArray(const bool useArgPool,
+    const Kernel *kernel, void **argsArray, DavidArgLoaderResult *result)
+{
+    uint64_t paramTotalSize = kernel->GetParamTotalSize();
+    uint32_t argsSize = static_cast<uint32_t>(paramTotalSize);
+    if (argsSize == 0U) {
+        result->kerArgs = nullptr;
+        result->hostAddr = nullptr;
+        return RT_ERROR_NONE;
+    }
+
+    rtError_t error = AllocCopyPtr(argsSize, useArgPool, result);
+    if (error != RT_ERROR_NONE) {
+        RT_LOG(RT_LOG_ERROR, "Alloc args copy ptr failed, size=%u, device_id=%u, stream_id=%d.",
+            argsSize, stream_->Device_()->Id_(), stream_->Id_());
+        return error;
+    }
+
+    error = CopyKernelParamsToBuffer(kernel, argsArray, result->hostAddr);
+    if (error != RT_ERROR_NONE) {
+        FreeFail(result);
+        return error;
+    }
+
+    return ParseArgsCpyWqe(result, argsSize);
 }
 
 }

@@ -268,6 +268,7 @@ set(runtimeut_910b_src_list
     ${TOP_DIR}/src/runtime/feature/aclgraph/v100/capture_model_adapt_v100.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/args/args_handle_allocator.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/args/para_convertor.cc
+    ${TOP_DIR}/src/runtime/core/src/common/args_buffer_guard.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/binary_loader.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/elf.cc
     ${TOP_DIR}/src/runtime/core/src/kernel/kernel.cc

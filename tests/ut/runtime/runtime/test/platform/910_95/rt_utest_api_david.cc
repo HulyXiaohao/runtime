@@ -10265,6 +10265,93 @@ TEST_F(ApiDavidTest, LaunchKernelV2_KernelProgramInvalid)
     delete k1;
 }
 
+TEST_F(ApiDavidTest, LaunchKernelByArgsWithType_RT_ARGS_ARRAY)
+{
+    ApiImplDavid apiImpl;
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    Kernel *k1 = new Kernel("f1", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+    k1->SetParamTotalSize(128);
+    
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[2]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 64;
+    paramInfos[1].info.offset = 64;
+    paramInfos[1].info.size = 64;
+    k1->SetParamInfos(paramInfos);
+    k1->SetParamCount(2);
+    k1->SetHasParamSummary(true);
+    
+    RtArgsWithType argsWithType = {};
+    argsWithType.type = RT_ARGS_ARRAY;
+    
+    void *argsArray[2] = {(void *)0x100, (void *)0x200};
+    argsWithType.args.argsArrayInfo = argsArray;
+    
+    TaskCfg taskCfg = {};
+    
+    MOCKER(StreamLaunchKernelV2).stubs().will(returnValue(RT_ERROR_NONE));
+    
+    rtError_t error = apiImpl.LaunchKernelByArgsWithType(k1, 1U, stream_, &argsWithType, taskCfg);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    
+    GlobalMockObject::verify();
+    delete k1;
+}
+
+TEST_F(ApiDavidTest, FunctionGetParamCount_Success)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    
+    Kernel kernelMock("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+    kernelMock.SetParamCount(5);
+    
+    ApiImpl apiImpl;
+    size_t paramCount = 0;
+    rtError_t error = apiImpl.FunctionGetParamCount(&kernelMock, &paramCount);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(paramCount, 5U);
+}
+
+TEST_F(ApiDavidTest, FunctionGetParamInfo_Success)
+{
+    PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
+    Program *program = &stubProg;
+    
+    Kernel kernelMock("test", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
+    kernelMock.SetParamCount(3);
+    kernelMock.SetHasParamSummary(true);
+    
+    std::shared_ptr<ElfParamInfo[]> paramInfos(new ElfParamInfo[3]);
+    paramInfos[0].info.offset = 0;
+    paramInfos[0].info.size = 16;
+    paramInfos[1].info.offset = 16;
+    paramInfos[1].info.size = 32;
+    paramInfos[2].info.offset = 48;
+    paramInfos[2].info.size = 64;
+    kernelMock.SetParamInfos(paramInfos);
+    
+    ApiImpl apiImpl;
+    size_t paramOffset = 0;
+    size_t paramSize = 0;
+    
+    rtError_t error = apiImpl.FunctionGetParamInfo(&kernelMock, 0, &paramOffset, &paramSize);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(paramOffset, 0U);
+    EXPECT_EQ(paramSize, 16U);
+    
+    error = apiImpl.FunctionGetParamInfo(&kernelMock, 1, &paramOffset, &paramSize);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(paramOffset, 16U);
+    EXPECT_EQ(paramSize, 32U);
+    
+    error = apiImpl.FunctionGetParamInfo(&kernelMock, 2, &paramOffset, &paramSize);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(paramOffset, 48U);
+    EXPECT_EQ(paramSize, 64U);
+}
+
 TEST_F(ApiDavidTest, StarsLaunch_DvppRRProcessFail)
 {
     rtDavidSqe_t *sqe = new rtDavidSqe_t{};

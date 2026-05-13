@@ -1383,10 +1383,79 @@ rtError_t rtBinaryGetGlobal(const rtBinHandle binHandle, const char *name, void 
     const Runtime * const rtInstance = Runtime::Instance();
     NULL_RETURN_ERROR_WITH_EXT_ERRCODE(rtInstance);
     if (IS_SUPPORT_CHIP_FEATURE(rtInstance->GetChipType(), RtOptionalFeatureType::RT_FEATURE_XPU)) {
-        RT_LOG(RT_LOG_WARNING, "XPU not support BinaryGetGlobal");
-        return RT_ERROR_FEATURE_NOT_SUPPORT;
+        RT_LOG(RT_LOG_WARNING, "XPU not support rtBinaryGetGlobal");
+        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
     }
     const rtError_t ret = apiInstance->BinaryGetGlobal(RtPtrToPtr<Program *>(binHandle), name, dptr, size);
+    COND_RETURN_WITH_NOLOG(ret == RT_ERROR_FEATURE_NOT_SUPPORT, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+    ERROR_RETURN_WITH_EXT_ERRCODE(ret);
+    return ACL_RT_SUCCESS;
+}
+
+VISIBILITY_DEFAULT
+rtError_t rtFunctionGetParamCount(const void *func, size_t *paramCount)
+{
+    Api * const apiInstance = Api::Instance();
+    NULL_RETURN_ERROR_WITH_EXT_ERRCODE(apiInstance);
+    const Runtime * const rtInstance = Runtime::Instance();
+    NULL_RETURN_ERROR_WITH_EXT_ERRCODE(rtInstance);
+    if (IS_SUPPORT_CHIP_FEATURE(rtInstance->GetChipType(), RtOptionalFeatureType::RT_FEATURE_XPU)) {
+        RT_LOG(RT_LOG_WARNING, "XPU not support rtFunctionGetParamCount");
+        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+    }
+    const Kernel *kernel = RtPtrToPtr<const Kernel *>(func);
+    const rtError_t error = apiInstance->FunctionGetParamCount(kernel, paramCount);
+    COND_RETURN_WITH_NOLOG(error == RT_ERROR_FEATURE_NOT_SUPPORT, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+    ERROR_RETURN_WITH_EXT_ERRCODE(error);
+    return ACL_RT_SUCCESS;
+}
+
+VISIBILITY_DEFAULT
+rtError_t rtFunctionGetParamInfo(const void *func, size_t paramIndex,
+                                 size_t *paramOffset, size_t *paramSize)
+{
+    Api * const apiInstance = Api::Instance();
+    NULL_RETURN_ERROR_WITH_EXT_ERRCODE(apiInstance);
+    const Runtime * const rtInstance = Runtime::Instance();
+    NULL_RETURN_ERROR_WITH_EXT_ERRCODE(rtInstance);
+    if (IS_SUPPORT_CHIP_FEATURE(rtInstance->GetChipType(), RtOptionalFeatureType::RT_FEATURE_XPU)) {
+        RT_LOG(RT_LOG_WARNING, "XPU not support rtFunctionGetParamInfo");
+        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+    }
+    const Kernel *kernel = RtPtrToPtr<const Kernel *>(func);
+    const rtError_t error = apiInstance->FunctionGetParamInfo(kernel, paramIndex, paramOffset, paramSize);
+    COND_RETURN_WITH_NOLOG(error == RT_ERROR_FEATURE_NOT_SUPPORT, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+    ERROR_RETURN_WITH_EXT_ERRCODE(error);
+    return ACL_RT_SUCCESS;
+}
+
+VISIBILITY_DEFAULT
+rtError_t rtLaunchKernelWithArgsArray(void *func, uint32_t numBlocks, rtStream_t stm,
+                                      rtKernelLaunchCfg_t *cfg, void **args)
+{
+    GLOBAL_STATE_WAIT_IF_LOCKED();
+    Api * const apiInstance = Api::Instance();
+    NULL_RETURN_ERROR_WITH_EXT_ERRCODE(apiInstance);
+
+    const Runtime * const rtInstance = Runtime::Instance();
+    NULL_RETURN_ERROR_WITH_EXT_ERRCODE(rtInstance);
+    if (IS_SUPPORT_CHIP_FEATURE(rtInstance->GetChipType(), RtOptionalFeatureType::RT_FEATURE_XPU)) {
+        RT_LOG(RT_LOG_WARNING, "XPU not support rtLaunchKernelWithArgsArray");
+        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+    }
+    Kernel * const kernel = RtPtrToPtr<Kernel *>(func);
+    const auto watchDogHandle = ThreadLocalContainer::GetOrCreateWatchDogHandle();
+    (void)AwdStartThreadWatchdog(watchDogHandle);
+
+    RtArgsWithType argsWithType = {};
+    argsWithType.type = RT_ARGS_ARRAY;
+    argsWithType.args.argsArrayInfo = args;
+
+    RT_VALIDATE_AND_UNWRAP_OBJECT(stm, Stream, exeStream);
+    const rtError_t ret = apiInstance->LaunchKernelV2(kernel, numBlocks, &argsWithType,
+        exeStream, cfg);
+    (void)AwdStopThreadWatchdog(watchDogHandle);
+    COND_RETURN_WITH_NOLOG(ret == RT_ERROR_KERNEL_INVALID, ACL_ERROR_RT_INVALID_HANDLE);
     COND_RETURN_WITH_NOLOG(ret == RT_ERROR_FEATURE_NOT_SUPPORT, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
     ERROR_RETURN_WITH_EXT_ERRCODE(ret);
     return ACL_RT_SUCCESS;

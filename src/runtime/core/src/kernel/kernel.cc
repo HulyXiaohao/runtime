@@ -371,5 +371,26 @@ rtError_t GetPrefetchCntAndMixTypeWithKernel(const Kernel * const kernelPtr,
     return RT_ERROR_NONE;
 }
 
+rtError_t Kernel::GetParamInfo(uint32_t paramIndex, uint32_t *paramOffset, uint32_t *paramSize) const
+{
+    if (!hasParamSummary_ || (paramInfos_ == nullptr) || (paramIndex >= paramCount_)) {
+        RT_LOG(RT_LOG_ERROR, "GetParamInfo failed, hasParamSummary=%d, paramIndex=%u, paramCount=%u.",
+               hasParamSummary_, paramIndex, paramCount_);
+        return RT_ERROR_INVALID_VALUE;
+    }
+    
+    if (paramOffset != nullptr) {
+        *paramOffset = paramInfos_[paramIndex].info.offset;
+    }
+    if (paramSize != nullptr) {
+        *paramSize = paramInfos_[paramIndex].info.size;
+    }
+    
+    RT_LOG(RT_LOG_INFO, "GetParamInfo success, paramIndex=%u, offset=%u, size=%u.",
+           paramIndex, paramInfos_[paramIndex].info.offset, paramInfos_[paramIndex].info.size);
+    
+    return RT_ERROR_NONE;
+}
+
 }  // namespace runtime
 }  // namespace cce

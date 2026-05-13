@@ -623,11 +623,9 @@ TEST_F(ApiImplTest, rts_api_impl_test5)
     RtArgsWithType argsWithType;
     argsWithType.args.argHandle = nullptr;
     argsWithType.type = RT_ARGS_MAX;
-    rtError_t error = apiError.CheckArgsWithType(&argsWithType);
-    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
+    
     PlainProgram stubProg(RT_KERNEL_ATTR_TYPE_AICPU);
     Program *program = &stubProg;
-    int32_t fun1;
     Kernel *k1 = new Kernel("f1", 0ULL, program, RT_KERNEL_ATTR_TYPE_AICPU, 10);
     k1->userParaNum_ = 0;
     k1->systemParaNum_ = 0;
@@ -635,6 +633,9 @@ TEST_F(ApiImplTest, rts_api_impl_test5)
     k1->isNeedSetFftsAddrInArg_ = false;
     k1->SetKernelRegisterType(RT_KERNEL_REG_TYPE_NON_CPU);
     k1->mixType_ = MIX_AIV;
+    
+    rtError_t error = apiError.CheckArgsWithType(k1, &argsWithType);
+    EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
 
     uint64_t data = 1234;
     argsWithType.type = RT_ARGS_NON_CPU_EX;

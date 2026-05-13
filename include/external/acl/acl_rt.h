@@ -4856,6 +4856,21 @@ ACL_FUNC_VISIBILITY aclError aclrtLaunchKernelWithHostArgs(aclrtFuncHandle funcH
 
 /**
  * @ingroup AscendCL
+ * @brief launch kernel with args array
+ * @param [in] func  kernel handle
+ * @param [in] numBlocks  block count
+ * @param [in] stream  stream handle
+ * @param [in] cfg  configuration information
+ * @param [in] args  args array pointer, each element points to a parameter data
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtLaunchKernelWithArgsArray(void *func, uint32_t numBlocks,
+                                                             aclrtStream stream, aclrtLaunchKernelCfg *cfg,
+                                                             void **args);
+
+/**
+ * @ingroup AscendCL
  * @brief get context overflowAddr
  * @param [out] overflowAddr  current ctx's overflowAddr to be get
  * @retval ACL_SUCCESS The function is successfully executed.
@@ -5296,6 +5311,32 @@ ACL_FUNC_VISIBILITY aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandl
  */
 ACL_FUNC_VISIBILITY aclError aclrtFunctionGetBinary(const aclrtFuncHandle funcHandle, aclrtBinHandle *binHandle);
 
+/**
+ * @ingroup AscendCL
+ * @brief get parameter count from function handle.
+ *
+ * @param [in] func        function handle
+ * @param [out] paramCount parameter count
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtFunctionGetParamCount(const void *func, size_t *paramCount);
+
+/**
+ * @ingroup AscendCL
+ * @brief get parameter info from function handle by index.
+ *
+ * @param [in] func        function handle
+ * @param [in] paramIndex  parameter index
+ * @param [out] paramOffset parameter offset
+ * @param [out] paramSize   parameter size
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtFunctionGetParamInfo(const void *func, size_t paramIndex,
+                                                        size_t *paramOffset, size_t *paramSize);
 /**
  * @ingroup AscendCL
  * @brief get an interprocess handle for a previously allocated event.

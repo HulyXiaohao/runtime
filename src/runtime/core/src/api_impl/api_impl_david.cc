@@ -567,6 +567,14 @@ rtError_t ApiImplDavid::LaunchKernelByArgsWithType(Kernel * const kernel, const 
             error = LaunchKernelByHandle(kernel, coreDim, argsWithType->args.argHandle, stm, taskCfg);
             break;
         }
+        case RT_ARGS_ARRAY: {
+            rtArgsEx_t nonCpuArgsInfo = {};
+            rtStreamLaunchKernelV2ExtendArgs_t launchKernelExtendArgs = {};
+            ConstructStreamLaunchKernelV2ExtendArgs(&nonCpuArgsInfo, nullptr, nullptr, &taskCfg, &launchKernelExtendArgs);
+            launchKernelExtendArgs.argsArray = argsWithType->args.argsArrayInfo;
+            error = StreamLaunchKernelV2(kernel, coreDim, stm, &launchKernelExtendArgs);
+            break;
+        }
         default:
             error = RT_ERROR_INVALID_VALUE;
             RT_LOG_OUTER_MSG_INVALID_PARAM(argsWithType->type,

@@ -14,6 +14,8 @@
 #include "arg_manage_xpu.hpp"
 #include "error_message_manage.hpp"
 #include "arg_manage_david.hpp"
+#include "kernel.hpp"
+#include "thread_local_container.hpp"
 
 namespace cce {
 namespace runtime {
@@ -120,6 +122,16 @@ rtError_t XpuArgManage::H2DArgCopy(const DavidArgLoaderResult * const result, vo
 void XpuArgManage::RecycleDevLoader(void * const handle)
 {
     (void)static_cast<XpuDevice *>(stream_->Device_())->XpuArgLoader_()->Release(handle);
+}
+
+rtError_t XpuArgManage::LoadArgsFromArray(const bool useArgPool,
+    const Kernel *kernel, void **argsArray, DavidArgLoaderResult *result)
+{
+    UNUSED(useArgPool);
+    UNUSED(kernel);
+    UNUSED(argsArray);
+    UNUSED(result);
+    return RT_ERROR_FEATURE_NOT_SUPPORT;
 }
 
 }

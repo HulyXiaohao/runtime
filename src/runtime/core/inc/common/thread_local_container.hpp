@@ -18,9 +18,11 @@
 #include "osal.hpp"
 #include "api.hpp"
 #include "awatchdog.h"
+#include "args_buffer_guard.hpp"
 
 namespace cce {
 namespace runtime {
+
 class ThreadLocalContainer {
 public:
     static LaunchArgment& GetLaunchArg(void);
@@ -33,6 +35,7 @@ public:
     static void SetEnvFlags(const uint32_t inEnvFlags);
     static rtArgsSizeInfo_t& GetArgsSizeInfo(void);
     static AwdHandle GetOrCreateWatchDogHandle(void);
+    static void* GetOrCreateArgsBuffer(uint64_t requiredSize);
 private:
     // always end with '\0', if first is '\0', means not set.
     static __THREAD_LOCAL__ LaunchArgment launchArg_;
@@ -40,6 +43,7 @@ private:
     static __THREAD_LOCAL__ uint32_t envFlags_;
     static __THREAD_LOCAL__ rtArgsSizeInfo_t argsSize_;
     static __THREAD_LOCAL__ AwdHandle watchDogHandle_;
+    static thread_local ArgsBufferGuard argsBufferGuard_;
 };
 
 enum class CaptureEventModeType : uint8_t {

@@ -308,6 +308,9 @@ namespace acl {
         AclrtCacheLastTaskExtendInfo,
         AclrtMemMapSelectedLink,
         AclmdlRIGetId,
+        AclrtLaunchKernelWithArgsArray,
+        AclrtFunctionGetParamCount,
+        AclrtFunctionGetParamInfo,
         // this is the end, can not add after AclRtProfTypeEnd
         AclRtProfTypeEnd
     };

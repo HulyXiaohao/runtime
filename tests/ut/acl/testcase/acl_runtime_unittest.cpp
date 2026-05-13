@@ -8153,3 +8153,149 @@ TEST_F(UTEST_ACL_Runtime, aclrtBinaryGetGlobal_rt_error)
     aclError ret = aclrtBinaryGetGlobal(binHandle, name, &dptr, &size);
     EXPECT_EQ(ret, ACL_ERROR_RT_INVALID_HANDLE);
 }
+
+TEST_F(UTEST_ACL_Runtime, aclrtLaunchKernelWithArgsArrayTest)
+{
+    void *func = (void *)0x01;
+    uint32_t numBlocks = 1;
+    aclrtStream stream = nullptr;
+    aclrtLaunchKernelCfg cfg = {};
+    void *argsArray[2] = {(void *)0x10, (void *)0x20};
+
+    aclError ret = aclrtLaunchKernelWithArgsArray(nullptr, numBlocks, stream, &cfg, argsArray);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtLaunchKernelWithArgsArray(_, _, _, _, _))
+        .WillOnce(Return(RT_ERROR_NONE));
+    ret = aclrtLaunchKernelWithArgsArray(func, numBlocks, stream, &cfg, argsArray);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtLaunchKernelWithArgsArray(_, _, _, _, _))
+        .WillOnce(Return(ACL_ERROR_RT_INVALID_HANDLE));
+    ret = aclrtLaunchKernelWithArgsArray(func, numBlocks, stream, &cfg, argsArray);
+    EXPECT_EQ(ret, ACL_ERROR_RT_INVALID_HANDLE);
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtLaunchKernelWithArgsArray(_, _, _, _, _))
+        .WillOnce(Return(ACL_ERROR_RT_FEATURE_NOT_SUPPORT));
+    ret = aclrtLaunchKernelWithArgsArray(func, numBlocks, stream, &cfg, argsArray);
+    EXPECT_EQ(ret, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtLaunchKernelWithArgsArray(_, _, _, _, _))
+        .WillOnce(Return(ACL_ERROR_RT_PARAM_INVALID));
+    ret = aclrtLaunchKernelWithArgsArray(func, numBlocks, stream, &cfg, argsArray);
+    EXPECT_EQ(ret, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtFunctionGetParamCountTest)
+{
+    void *func = (void *)0x01;
+    size_t paramCount = 0;
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtFunctionGetParamCount(_, _))
+        .WillOnce(Return(RT_ERROR_NONE));
+    aclError ret = aclrtFunctionGetParamCount(func, &paramCount);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtFunctionGetParamCount(_, _))
+        .WillOnce(Return(ACL_ERROR_RT_PARAM_INVALID));
+    ret = aclrtFunctionGetParamCount(func, &paramCount);
+    EXPECT_EQ(ret, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtFunctionGetParamInfoTest)
+{
+    void *func = (void *)0x01;
+    size_t paramIndex = 0;
+    size_t paramOffset = 0;
+    size_t paramSize = 0;
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtFunctionGetParamInfo(_, _, _, _))
+        .WillOnce(Return(RT_ERROR_NONE));
+    aclError ret = aclrtFunctionGetParamInfo(func, paramIndex, &paramOffset, &paramSize);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtFunctionGetParamInfo(_, _, _, _))
+        .WillOnce(Return(ACL_ERROR_RT_PARAM_INVALID));
+    ret = aclrtFunctionGetParamInfo(func, paramIndex, &paramOffset, &paramSize);
+    EXPECT_EQ(ret, ACL_ERROR_RT_PARAM_INVALID);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtLaunchKernelWithArgsArray_NumBlocksZeroTest)
+{
+    void *func = (void *)0x01;
+    uint32_t numBlocks = 0;
+    aclrtStream stream = nullptr;
+    aclrtLaunchKernelCfg cfg = {};
+    void *argsArray[2] = {(void *)0x10, (void *)0x20};
+
+    aclError ret = aclrtLaunchKernelWithArgsArray(func, numBlocks, stream, &cfg, argsArray);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtLaunchKernelWithArgsArray_CfgNullptrTest)
+{
+    void *func = (void *)0x01;
+    uint32_t numBlocks = 1;
+    aclrtStream stream = nullptr;
+    void *argsArray[2] = {(void *)0x10, (void *)0x20};
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtLaunchKernelWithArgsArray(_, _, _, nullptr, _))
+        .WillOnce(Return(RT_ERROR_NONE));
+    aclError ret = aclrtLaunchKernelWithArgsArray(func, numBlocks, stream, nullptr, argsArray);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtFunctionGetParamCount_FeatureNotSupportTest)
+{
+    void *func = (void *)0x01;
+    size_t paramCount = 0;
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtFunctionGetParamCount(_, _))
+        .WillOnce(Return(ACL_ERROR_RT_FEATURE_NOT_SUPPORT));
+    aclError ret = aclrtFunctionGetParamCount(func, &paramCount);
+    EXPECT_EQ(ret, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtFunctionGetParamInfo_FeatureNotSupportTest)
+{
+    void *func = (void *)0x01;
+    size_t paramIndex = 0;
+    size_t paramOffset = 0;
+    size_t paramSize = 0;
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtFunctionGetParamInfo(_, _, _, _))
+        .WillOnce(Return(ACL_ERROR_RT_FEATURE_NOT_SUPPORT));
+    aclError ret = aclrtFunctionGetParamInfo(func, paramIndex, &paramOffset, &paramSize);
+    EXPECT_EQ(ret, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtFunctionGetParamCount_FuncNullptrTest)
+{
+    size_t paramCount = 0;
+    
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtFunctionGetParamCount(nullptr, _))
+        .WillOnce(Return(ACL_ERROR_RT_PARAM_INVALID));
+    aclError ret = aclrtFunctionGetParamCount(nullptr, &paramCount);
+    EXPECT_NE(ret, ACL_SUCCESS);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtFunctionGetParamCount_ParamCountNullptrTest)
+{
+    void *func = (void *)0x01;
+    
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtFunctionGetParamCount(_, nullptr))
+        .WillOnce(Return(ACL_ERROR_RT_PARAM_INVALID));
+    aclError ret = aclrtFunctionGetParamCount(func, nullptr);
+    EXPECT_NE(ret, ACL_SUCCESS);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtFunctionGetParamInfo_ParamNullptrTest)
+{
+    void *func = (void *)0x01;
+    size_t paramIndex = 0;
+    
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtFunctionGetParamInfo(_, _, nullptr, nullptr))
+        .WillOnce(Return(ACL_ERROR_RT_PARAM_INVALID));
+    aclError ret = aclrtFunctionGetParamInfo(func, paramIndex, nullptr, nullptr);
+    EXPECT_NE(ret, ACL_SUCCESS);
+}

@@ -334,6 +334,10 @@ public:
     virtual rtError_t rtCacheLastTaskExtendInfo(const char* const extendInfoPtr, const size_t infoSize);
     virtual rtError_t rtFunctionGetAttribute(rtFuncHandle funcHandle, rtFuncAttribute attrType, int64_t *attrValue);
     virtual rtError_t rtFunctionGetBinary(const rtFuncHandle funcHandle, rtBinHandle *binHandle);
+    virtual rtError_t rtFunctionGetParamCount(const void *func, size_t *paramCount);
+    virtual rtError_t rtFunctionGetParamInfo(const void *func, size_t paramIndex, size_t *paramOffset, size_t *paramSize);
+    virtual rtError_t rtLaunchKernelWithArgsArray(void *func, uint32_t numBlocks, rtStream_t stream, 
+                                                   rtKernelLaunchCfg_t *cfg, void **args);
 
     virtual rtError_t rtModelDebugDotPrint(rtModel_t mdl);
     virtual rtError_t rtModelDebugJsonPrint(rtModel_t mdl, const char *path, uint32_t flags);
@@ -819,6 +823,10 @@ public:
     MOCK_METHOD2(rtCacheLastTaskExtendInfo, rtError_t(const char* const extendInfoPtr, const size_t infoSize));
     MOCK_METHOD3(rtFunctionGetAttribute, rtError_t(rtFuncHandle funcHandle, rtFuncAttribute attrType, int64_t *attrValue));
     MOCK_METHOD2(rtFunctionGetBinary, rtError_t(const rtFuncHandle funcHandle, rtBinHandle *binHandle));
+    MOCK_METHOD2(rtFunctionGetParamCount, rtError_t(const void *func, size_t *paramCount));
+    MOCK_METHOD4(rtFunctionGetParamInfo, rtError_t(const void *func, size_t paramIndex, size_t *paramOffset, size_t *paramSize));
+    MOCK_METHOD5(rtLaunchKernelWithArgsArray, rtError_t(void *func, uint32_t numBlocks, rtStream_t stream,
+                                                         rtKernelLaunchCfg_t *cfg, void **args));
     MOCK_METHOD1(rtModelDebugDotPrint, rtError_t(rtModel_t mdl));
     MOCK_METHOD3(rtModelDebugJsonPrint, rtError_t(rtModel_t mdl, const char *path, uint32_t flags));
     MOCK_METHOD1(rtThreadExchangeCaptureMode, rtError_t(rtStreamCaptureMode *mode));

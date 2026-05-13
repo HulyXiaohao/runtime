@@ -158,6 +158,21 @@ RTS_API rtError_t rtModelTaskDisable(rtTask_t task);
  */
 RTS_API rtError_t rtCacheLastTaskExtendInfo(const char* const extendInfoPtr, const size_t infoSize);
 
+
+/**
+ * @ingroup rts_kernel
+ * @brief launch kernel with args array.
+ * @param [in] func  kernel handle
+ * @param [in] numBlocks  block count
+ * @param [in] stm  associated stream
+ * @param [in] cfg task t-v config
+ * @param [in] args  args array pointer
+ * @return ACL_RT_SUCCESS for ok
+ * @return ACL_ERROR_RT_PARAM_INVALID for error input
+ */
+RTS_API rtError_t rtLaunchKernelWithArgsArray(void *func, uint32_t numBlocks, rtStream_t stm,
+                                              rtKernelLaunchCfg_t *cfg, void **args);
+
 #if defined(__cplusplus)
 }
 #endif

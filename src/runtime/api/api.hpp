@@ -829,6 +829,9 @@ public:
 
     virtual rtError_t FunctionGetAttribute(rtFuncHandle funcHandle, rtFuncAttribute attrType, int64_t *attrValue) = 0;
     virtual rtError_t FunctionGetBinary(const Kernel *const funcHandle, Program **const binHandle) = 0;
+    virtual rtError_t FunctionGetParamCount(const Kernel *funcHandle, size_t *paramCount) = 0;
+    virtual rtError_t FunctionGetParamInfo(const Kernel *funcHandle, size_t paramIndex,
+                                            size_t *paramOffset, size_t *paramSize) = 0;
     
     virtual rtError_t BinarySetExceptionCallback(Program *binHandle, void *callback, void *userData) = 0;
 

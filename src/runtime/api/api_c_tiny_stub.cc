@@ -1003,6 +1003,37 @@ rtError_t rtFunctionGetBinary(const rtFuncHandle funcHandle, rtBinHandle *binHan
 }
 
 VISIBILITY_DEFAULT
+rtError_t rtFunctionGetParamCount(const void *func, size_t *paramCount)
+{
+    UNUSED(func);
+    UNUSED(paramCount);
+    return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+}
+
+VISIBILITY_DEFAULT
+rtError_t rtFunctionGetParamInfo(const void *func, size_t paramIndex,
+                                 size_t *paramOffset, size_t *paramSize)
+{
+    UNUSED(func);
+    UNUSED(paramIndex);
+    UNUSED(paramOffset);
+    UNUSED(paramSize);
+    return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+}
+
+VISIBILITY_DEFAULT
+rtError_t rtLaunchKernelWithArgsArray(void *func, uint32_t numBlocks, rtStream_t stm,
+                                      rtKernelLaunchCfg_t *cfg, void **args)
+{
+    UNUSED(func);
+    UNUSED(numBlocks);
+    UNUSED(stm);
+    UNUSED(cfg);
+    UNUSED(args);
+    return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+}
+
+VISIBILITY_DEFAULT
 rtError_t rtModelTaskGetParams(rtTask_t task, rtTaskParams* params)
 {
     UNUSED(task);

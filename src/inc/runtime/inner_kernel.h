@@ -59,6 +59,27 @@ RTS_API rtError_t rtFuncGetSize(const rtFuncHandle funcHandle, size_t *aicSize, 
 RTS_API rtError_t rtFunctionGetBinary(const rtFuncHandle funcHandle, rtBinHandle *binHandle);
 
 /**
+ * @brief get parameter count from function handle.
+ * @param [in]  func        function handle
+ * @param [out] paramCount  parameter count
+ * @return ACL_RT_SUCCESS for ok
+ * @return ACL_ERROR_RT_PARAM_INVALID for error input
+ */
+RTS_API rtError_t rtFunctionGetParamCount(const void *func, size_t *paramCount);
+
+/**
+ * @brief get parameter info from function handle by index.
+ * @param [in]  func        function handle
+ * @param [in]  paramIndex  parameter index
+ * @param [out] paramOffset parameter offset in bytes
+ * @param [out] paramSize   parameter size in bytes
+ * @return ACL_RT_SUCCESS for ok
+ * @return ACL_ERROR_RT_PARAM_INVALID for error input
+ */
+RTS_API rtError_t rtFunctionGetParamInfo(const void *func, size_t paramIndex,
+                                         size_t *paramOffset, size_t *paramSize);
+
+/**
  * @ingroup rts_kernel
  * @brief Get global symbol address and size from binary.
  * @param [in] binHandle    bin handle

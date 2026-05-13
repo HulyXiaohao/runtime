@@ -2508,6 +2508,17 @@ rtError_t ApiDecorator::FunctionGetBinary(const Kernel *const funcHandle, Progra
     return impl_->FunctionGetBinary(funcHandle, binHandle);
 }
 
+rtError_t ApiDecorator::FunctionGetParamCount(const Kernel *funcHandle, size_t *paramCount)
+{
+    return impl_->FunctionGetParamCount(funcHandle, paramCount);
+}
+
+rtError_t ApiDecorator::FunctionGetParamInfo(const Kernel *funcHandle, size_t paramIndex,
+                                             size_t *paramOffset, size_t *paramSize)
+{
+    return impl_->FunctionGetParamInfo(funcHandle, paramIndex, paramOffset, paramSize);
+}
+
 rtError_t ApiDecorator::MemGetAddressRange(void *ptr, void **pbase, size_t *psize)
 {
     return impl_->MemGetAddressRange(ptr, pbase, psize);

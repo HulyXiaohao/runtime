@@ -11,6 +11,8 @@
 #define __ELF_HPP__
 
 #include <cstdint>
+#include <vector>
+#include <memory>
 #include "base.hpp"
 #include "rt_preload_task.h"
 
@@ -115,7 +117,9 @@ enum {
     FUNC_META_TYPE_AIV_TYPE_FLAG    = 12U,       // for simt, corresponding enum AivTypeFlag
     FUNCTION_META_TYPE_FUNCTION_ENTRY_INFO = 14U,
     FUNC_META_TYPE_BLOCK_DIM_INFO   = 15U,
-    FUNC_META_TYPE_SCHED_MODE_INFO   = 18U,
+    FUNC_META_TYPE_PARAM_SUMMARY    = 16U,
+    FUNC_META_TYPE_PARAM_INFO       = 17U,
+    FUNC_META_TYPE_SCHED_MODE_INFO  = 18U,
 };
 
 enum class AivTypeFlag : uint32_t {
@@ -201,6 +205,30 @@ struct ElfKernelSchedModeInfo {
     uint32_t schedMode;
 };
 
+struct ElfParamSummary {
+    ElfTlvHead head;
+    uint32_t paraNums;
+    uint64_t paramTotalSize;
+};
+
+struct ElfParamBody {
+    uint32_t index;
+    uint32_t ordinal;
+    uint32_t offset;
+    uint32_t size;
+    uint16_t align;
+    uint16_t paramType;
+    uint32_t spaceIndex;
+    uint32_t spaceType;
+    uint32_t space;
+    uint32_t resv;
+};
+
+struct ElfParamInfo {
+    ElfTlvHead head;
+    ElfParamBody info;
+};
+
 struct ElfKernelInfo {
     uint32_t funcType;
     uint32_t crossCoreSync;
@@ -216,6 +244,10 @@ struct ElfKernelInfo {
     bool isSupportFuncEntry;
     uint8_t functionEntryFlag;
     uint32_t schedMode;
+    uint32_t paramCount;
+    uint64_t paramTotalSize;
+    bool hasParamSummary;
+    std::vector<ElfParamInfo> cachedParamInfos;
 };
 
 struct Elf_Internal_Ehdr {
@@ -328,9 +360,13 @@ struct RtKernelMetaInfo {
     uint32_t shareMemSize;
     int32_t elfDataFlag;
     uint32_t minStackSize;
-    uint64_t functionEntry;         // the same as tiling key
+    uint64_t functionEntry; // the same as tiling key
     KernelFunctionEntryType funcEntryType;
     uint32_t schedMode;
+    std::shared_ptr<ElfParamInfo[]> paramInfos;
+    uint32_t paramCount;
+    uint64_t paramTotalSize;
+    bool hasParamSummary;
 };
 
 struct RtKernel final {

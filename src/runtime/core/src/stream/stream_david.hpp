@@ -14,6 +14,8 @@
 
 namespace cce {
 namespace runtime {
+
+class Kernel;
 constexpr uint32_t COUNT_NOTIFY_STATIC_THRESHOLD = 0xFFFFFFFDU;
 class DavidStream : public Stream {
 public:
@@ -87,6 +89,16 @@ public:
             return argManage_->LoadArgs(argsInfo, useArgPool, result);
         }
         result->kerArgs = argsInfo->args;
+        return RT_ERROR_NONE;
+    }
+
+    rtError_t LoadArgsFromArray(const bool useArgPool,
+        const Kernel *kernel, void **argsArray, DavidArgLoaderResult *result)
+    {
+        if (argManage_ != nullptr) {
+            return argManage_->LoadArgsFromArray(useArgPool, kernel, argsArray, result);
+        }
+        result->kerArgs = nullptr;
         return RT_ERROR_NONE;
     }
 

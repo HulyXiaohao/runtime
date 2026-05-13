@@ -592,7 +592,7 @@ TEST_F(CloudV2ApiKernelTest, TestApiImplBinaryGetGlobal_XPUFeatureNotSupport)
     void *dptr = nullptr;
     size_t size = 0;
     rtError_t ret = rtBinaryGetGlobal((rtBinHandle)0x01, "test_symbol", &dptr, &size);
-    EXPECT_EQ(ret, RT_ERROR_FEATURE_NOT_SUPPORT);
+    EXPECT_EQ(ret, ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
 }
 
 TEST_F(CloudV2ApiKernelTest, TestApiImplBinaryGetGlobal_BaseAddrNull)

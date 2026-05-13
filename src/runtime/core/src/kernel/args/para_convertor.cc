@@ -11,6 +11,9 @@
 #include "para_convertor.hpp"
 #include "error_message_manage.hpp"
 #include "runtime.hpp"
+#include "kernel.hpp"
+#include "thread_local_container.hpp"
+#include "kernel_utils.hpp"
 
 using namespace cce::runtime;
 
@@ -82,6 +85,27 @@ rtError_t ConvertCpuArgsByArgsHandle(rtCpuKernelArgs_t &oldArgs, const RtArgsHan
 
     cpuKernelArgs.hostInputInfoPtr = specialArgsInfos;
     cpuKernelArgs.hostInputInfoNum = argsHandle->placeHolderNum;
+
+    return RT_ERROR_NONE;
+}
+
+rtError_t ConvertArgsArrayToArgsEx(rtArgsEx_t &argsEx, const Kernel *kernel, void **argsArray)
+{
+    uint64_t paramTotalSize = kernel->GetParamTotalSize();
+
+    void *argsBuffer = nullptr;
+    if (paramTotalSize > 0ULL) {
+        argsBuffer = ThreadLocalContainer::GetOrCreateArgsBuffer(paramTotalSize);
+        NULL_PTR_RETURN_MSG(argsBuffer, RT_ERROR_MEMORY_ALLOCATION);
+
+        rtError_t error = CopyKernelParamsToBuffer(kernel, argsArray, argsBuffer);
+        COND_RETURN_ERROR(error != RT_ERROR_NONE, error,
+                          "CopyKernelParamsToBuffer failed, retCode=%#x.", static_cast<uint32_t>(error));
+    }
+
+    argsEx.args = argsBuffer;
+    argsEx.argsSize = static_cast<uint32_t>(paramTotalSize);
+    argsEx.isNoNeedH2DCopy = (paramTotalSize == 0ULL) ? 1U : 0U;
 
     return RT_ERROR_NONE;
 }

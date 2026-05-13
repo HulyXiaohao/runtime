@@ -199,6 +199,7 @@ set(libruntime_cmodel_api_src_files_cmodel
 set(common_src_files_cmodel
     ${RUNTIME_CORE_DIR}/src/common/error_code.cc
     ${RUNTIME_CORE_DIR}/src/common/thread_local_container.cc
+    ${RUNTIME_CORE_DIR}/src/common/args_buffer_guard.cc
     ${RUNTIME_CORE_DIR}/src/common/utils.cc
     ${RUNTIME_CORE_DIR}/src/common/heterogenous.cc
     ${RUNTIME_CORE_DIR}/src/common/soc_info.cc

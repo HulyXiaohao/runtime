@@ -37,6 +37,8 @@ public:
     rtError_t MallocArgMem(void *&devAddr, void *&hostAddr) override;
     bool AllocStmPool(const uint32_t size, DavidArgLoaderResult * const result) override;
     rtError_t AllocCopyPtr(const uint32_t size, const bool useArgPool, DavidArgLoaderResult * const result) override;
+    rtError_t LoadArgsFromArray(const bool useArgPool,
+        const Kernel *kernel, void **argsArray, DavidArgLoaderResult *result) override;
 };
 
 }  // namespace runtime

@@ -12,11 +12,13 @@
 
 namespace cce {
 namespace runtime {
+
 __THREAD_LOCAL__ LaunchArgment ThreadLocalContainer::launchArg_ = {};
 __THREAD_LOCAL__ char_t ThreadLocalContainer::taskTag_[TASK_TAG_MAX_LEN] = {};
 __THREAD_LOCAL__ uint32_t ThreadLocalContainer::envFlags_ = 0U;
 __THREAD_LOCAL__ rtArgsSizeInfo_t ThreadLocalContainer::argsSize_ = {nullptr, 0};
 __THREAD_LOCAL__ AwdHandle ThreadLocalContainer::watchDogHandle_ = AWD_INVALID_HANDLE;
+thread_local ArgsBufferGuard ThreadLocalContainer::argsBufferGuard_;
 LaunchArgment& ThreadLocalContainer::GetLaunchArg(void)
 {
     return launchArg_;
@@ -89,6 +91,11 @@ AwdHandle ThreadLocalContainer::GetOrCreateWatchDogHandle(void)
         watchDogHandle_ = AwdCreateThreadWatchdog(DEFINE_THREAD_WATCHDOG_ID(RUNTIME), runtimeWatchDogTimeout, nullptr);
     }
     return watchDogHandle_;
+}
+
+void* ThreadLocalContainer::GetOrCreateArgsBuffer(uint64_t requiredSize)
+{
+    return argsBufferGuard_.EnsureCapacity(requiredSize);
 }
 
 uint8_t GlobalContainer::eventWorkMode_ = 0;

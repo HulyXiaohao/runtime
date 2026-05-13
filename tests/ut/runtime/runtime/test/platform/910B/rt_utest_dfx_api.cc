@@ -9,6 +9,8 @@
  */
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
+#include <thread>
+#include <vector>
 #define private public
 #define protected public
 #include "runtime/rt.h"
@@ -127,3 +129,46 @@ TEST_F(DfxApiTest, getTsdQos_success)
     error = Runtime::Instance()->GetTsdQos(0, qos);
     EXPECT_EQ(error, RT_ERROR_DRV_TSD_ERR);
 }
+
+class ArgsBufferTest : public testing::Test {
+protected:
+    virtual void SetUp()
+    {
+    }
+
+    virtual void TearDown()
+    {
+        GlobalMockObject::verify();
+    }
+};
+
+TEST_F(ArgsBufferTest, BasicAllocation_ReturnsValidBuffer)
+{
+    uint64_t requiredSize = 1024ULL;
+    void *buffer = ThreadLocalContainer::GetOrCreateArgsBuffer(requiredSize);
+    ASSERT_NE(buffer, nullptr) << "GetOrCreateArgsBuffer should return valid buffer for kernel args";
+}
+
+TEST_F(ArgsBufferTest, LargeSizeAllocation_ReturnsValidBuffer)
+{
+    uint64_t requiredSize = 8192ULL;
+    void *buffer = ThreadLocalContainer::GetOrCreateArgsBuffer(requiredSize);
+    ASSERT_NE(buffer, nullptr) << "GetOrCreateArgsBuffer should handle large kernel args";
+}
+
+TEST_F(ArgsBufferTest, MultipleCalls_StableBehavior)
+{
+    for (int i = 0; i < 10; i++) {
+        uint64_t size = 1024ULL + i * 100ULL;
+        void *buffer = ThreadLocalContainer::GetOrCreateArgsBuffer(size);
+        ASSERT_NE(buffer, nullptr) << "GetOrCreateArgsBuffer should be stable across multiple calls";
+    }
+}
+
+TEST_F(ArgsBufferTest, SmallSize_GetsDefaultSizeBuffer)
+{
+    uint64_t requiredSize = 64ULL;
+    void *buffer = ThreadLocalContainer::GetOrCreateArgsBuffer(requiredSize);
+    ASSERT_NE(buffer, nullptr) << "GetOrCreateArgsBuffer should allocate at least default size";
+}
+
