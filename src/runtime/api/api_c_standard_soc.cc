@@ -39,6 +39,8 @@ TIMESTAMP_EXTERN(CmoAddrTaskLaunch);
 TIMESTAMP_EXTERN(CmoTaskLaunch);
 TIMESTAMP_EXTERN(rtNpuGetFloatStatus);
 TIMESTAMP_EXTERN(rtNpuClearFloatStatus);
+TIMESTAMP_EXTERN(rtMemsetD32);
+TIMESTAMP_EXTERN(rtMemsetD32Async);
 }
 }
 
@@ -865,6 +867,41 @@ rtError_t rtMemcpyAsyncWithOffset(void **dst, uint64_t dstMax, uint64_t dstDataO
         RT_ERROR_INVALID_VALUE, kind, "RT_MEMCPY_KIND_INNER_DEVICE_TO_DEVICE");
     return rtMemcpyD2DAddrAsync(RtPtrToPtr<void *>(dst), dstMax, dstDataOffset,
         RtPtrToPtr<void *>(src), cnt, srcDataOffset, stm);
+}
+
+VISIBILITY_DEFAULT
+rtError_t rtMemsetD32(void* dst, uint64_t destMax, uint32_t value, uint64_t count)
+{
+    GLOBAL_STATE_WAIT_IF_LOCKED();
+    Api* const apiInstance = Api::Instance();
+    NULL_RETURN_ERROR_WITH_EXT_ERRCODE(apiInstance);
+    TIMESTAMP_BEGIN(rtMemsetD32);
+    const auto watchDogHandle = ThreadLocalContainer::GetOrCreateWatchDogHandle();
+    (void)AwdStartThreadWatchdog(watchDogHandle);
+    const rtError_t error = apiInstance->MemsetD32(dst, destMax, value, count);
+    (void)AwdStopThreadWatchdog(watchDogHandle);
+    TIMESTAMP_END(rtMemsetD32);
+    ERROR_RETURN_WITH_EXT_ERRCODE(error);
+    return ACL_RT_SUCCESS;
+}
+
+VISIBILITY_DEFAULT
+rtError_t rtMemsetD32Async(void* dst, uint64_t destMax, uint32_t value, uint64_t count, rtStream_t stm)
+{
+    GLOBAL_STATE_WAIT_IF_LOCKED();
+    TIMESTAMP_BEGIN(rtMemsetD32Async);
+    RT_VALIDATE_AND_UNWRAP_OBJECT(stm, Stream, exeStream);
+    Api* const apiInstance = Api::Instance();
+    NULL_RETURN_ERROR_WITH_EXT_ERRCODE(apiInstance);
+    const auto watchDogHandle = ThreadLocalContainer::GetOrCreateWatchDogHandle();
+    (void)AwdStartThreadWatchdog(watchDogHandle);
+    const rtError_t error = apiInstance->MemsetD32Async(dst, destMax, value, count, exeStream);
+    (void)AwdStopThreadWatchdog(watchDogHandle);
+    COND_RETURN_WITH_NOLOG(error == RT_ERROR_FEATURE_NOT_SUPPORT,
+                           ACL_ERROR_RT_FEATURE_NOT_SUPPORT);
+    TIMESTAMP_END(rtMemsetD32Async);
+    ERROR_RETURN_WITH_EXT_ERRCODE(error);
+    return ACL_RT_SUCCESS;
 }
 
 VISIBILITY_DEFAULT

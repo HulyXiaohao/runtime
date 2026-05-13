@@ -17,6 +17,8 @@
 #include "error_message_manage.hpp"
 #include "capture_model_utils.hpp"
 #include "npu_driver.hpp"
+#include "simd_memsetd32.h"
+#include "common_memset_d32.h"
 
 namespace cce {
 namespace runtime {
@@ -397,6 +399,42 @@ rtError_t ApiErrorDecorator::GetDeviceInfoFromPlatformInfo(const uint32_t device
 {
     NULL_PTR_RETURN_MSG_OUTER(value, RT_ERROR_INVALID_VALUE);
     return impl_->GetDeviceInfoFromPlatformInfo(deviceId, label, key, value);
+}
+
+
+rtError_t ApiErrorDecorator::MemsetD32(void * const dst, const uint64_t destMax,
+                                           const uint32_t value, const uint64_t count)
+{
+    NULL_PTR_RETURN_MSG_OUTER(dst, RT_ERROR_INVALID_VALUE);
+    ZERO_RETURN_AND_MSG_OUTER(count);
+
+    const uint64_t requiredBytes = static_cast<uint64_t>(count) * sizeof(uint32_t);
+    COND_RETURN_AND_MSG_OUTER_WITH_PARAM(requiredBytes > destMax, RT_ERROR_INVALID_VALUE,
+                                         requiredBytes,
+                                         "required bytes exceed destMax=" + std::to_string(destMax));
+
+    const rtError_t error = impl_->MemsetD32(dst, destMax, value, count);
+    ERROR_RETURN(error, "MemsetD32 sync failed, destMax=%" PRIu64 ", value=0x%x, count=%zu",
+                 destMax, value, count);
+    return error;
+}
+
+rtError_t ApiErrorDecorator::MemsetD32Async(void * const dst, const uint64_t destMax,
+                                            const uint32_t value, const uint64_t count,
+                                            Stream * const stm)
+{
+    NULL_PTR_RETURN_MSG_OUTER(dst, RT_ERROR_INVALID_VALUE);
+    ZERO_RETURN_AND_MSG_OUTER(count);
+
+    const uint64_t requiredBytes = count * sizeof(uint32_t);
+    COND_RETURN_AND_MSG_OUTER_WITH_PARAM(requiredBytes > destMax, RT_ERROR_INVALID_VALUE,
+                                         requiredBytes,
+                                         "required bytes exceed destMax=" + std::to_string(destMax));
+
+    const rtError_t error = impl_->MemsetD32Async(dst, destMax, value, count, stm);
+    ERROR_RETURN(error, "MemsetD32 async failed, destMax=%" PRIu64 ", value=0x%x, count=%zu, stream=%p",
+                 destMax, value, count, stm);
+    return error;
 }
 
 rtError_t ApiErrorDecorator::GetDeviceInfoByAttr(uint32_t deviceId, rtDevAttr attr, int64_t *val)

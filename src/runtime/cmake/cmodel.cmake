@@ -426,6 +426,8 @@ set(libruntime_cmodel_src_files
     ${RUNTIME_CORE_DIR}/src/launch/label_stars.cc
     ${RUNTIME_CORE_DIR}/src/launch/cmo_barrier_stars.cc
     ${RUNTIME_CORE_DIR}/src/memory/mem_type.cc
+    ${RUNTIME_CORE_DIR}/src/memory/common_memset_d32.cpp
+    ${RUNTIME_CORE_DIR}/src/memory/simd_memsetd32.cpp
     ${libruntime_cmodel_v100_task_src_files}
     ${libruntime_cmodel_api_src_files}
     ${libruntime_cmodel_context_src_files}
@@ -559,6 +561,8 @@ set(libruntime_cmodel_v200_src_files
     ${RUNTIME_CORE_DIR}/src/notify/notify_c.cc
     ${RUNTIME_CORE_DIR}/src/profiler/profiler_c.cc
     ${RUNTIME_CORE_DIR}/src/memory/mem_type.cc
+    ${RUNTIME_CORE_DIR}/src/memory/common_memset_d32.cpp
+    ${RUNTIME_CORE_DIR}/src/memory/simd_memsetd32.cpp
     ${libruntime_cmodel_v200_task_src_files}
     ${libruntime_cmodel_api_src_files}
     ${libruntime_cmodel_context_src_files}

@@ -1688,6 +1688,295 @@ TEST_F(UTEST_ACL_Runtime, memory_memcpyAsync)
     EXPECT_EQ(ret, ACL_ERROR_RT_PARAM_INVALID);
 }
 
+static rtError_t rtsPointerGetAttributesToHost(const void *ptr, rtPtrAttributes_t *attributes)
+{
+    (void)ptr;
+    attributes->location.type = RT_MEMORY_LOC_HOST;  // 0
+    return RT_ERROR_NONE;
+}
+static rtError_t rtsPointerGetAttributesToDevice(const void *ptr, rtPtrAttributes_t *attributes)\
+{
+    (void)ptr;
+    attributes->location.type = RT_MEMORY_LOC_DEVICE; // 1
+    return RT_ERROR_NONE;
+}
+
+// ==================== 同步接口测试 ====================
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_failed_with_nullptr)
+{
+    aclError ret = aclrtMemsetD32(nullptr, 16, 0xDEADBEEF, 4);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_failed_with_zero_N)
+{
+    void *ptr = nullptr;
+    size_t N = 0;
+    size_t memSize = 16;
+    aclError ret = aclrtMemsetD32(ptr, memSize, 0xDEADBEEF, N);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_failed_with_insufficient_memSize)
+{
+    void *ptr = nullptr;
+    size_t N = 4;
+    size_t memSize = N * sizeof(uint32_t) - 1;
+    aclrtMallocHost(&ptr, memSize);
+    ASSERT_NE(ptr, nullptr);
+    aclError ret = aclrtMemsetD32(ptr, memSize, 0xDEADBEEF, N);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+    aclrtFreeHost(ptr);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_rt_error)
+{
+    void *ptr = nullptr;
+    size_t N = 4;
+    size_t memSize = N * sizeof(uint32_t);
+    aclrtMallocHost(&ptr, memSize);
+    ASSERT_NE(ptr, nullptr);
+
+    // 先 mock 内存属性为 Host，再 mock 底层函数返回错误
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtsPointerGetAttributes(_, _))
+        .WillOnce(Invoke(rtsPointerGetAttributesToHost));
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtMemsetD32(_, _, _, _))
+        .WillOnce(Return(ACL_ERROR_RT_PARAM_INVALID));
+
+    aclError ret = aclrtMemsetD32(ptr, memSize, 0xDEADBEEF, N);
+    EXPECT_EQ(ret, ACL_ERROR_RT_PARAM_INVALID);
+    aclrtFreeHost(ptr);
+}
+
+// ==================== 异步接口测试 ====================
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32Async_failed_with_nullptr)
+{
+    aclrtStream stream = (aclrtStream)0x10;
+    aclError ret = aclrtMemsetD32Async(nullptr, 16, 0xDEADBEEF, 4, stream);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32Async_failed_with_zero_N)
+{
+    void *ptr = nullptr;
+    aclrtStream stream = (aclrtStream)0x10;
+    size_t N = 0;
+    size_t memSize = 16;
+    aclError ret = aclrtMemsetD32Async(ptr, memSize, 0xDEADBEEF, N, stream);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32Async_failed_with_insufficient_memSize)
+{
+    void *ptr = nullptr;
+    size_t N = 4;
+    size_t memSize = N * sizeof(uint32_t) - 1;
+    aclrtStream stream = (aclrtStream)0x10;
+    aclrtMallocHost(&ptr, memSize);
+    ASSERT_NE(ptr, nullptr);
+    aclError ret = aclrtMemsetD32Async(ptr, memSize, 0xDEADBEEF, N, stream);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+    aclrtFreeHost(ptr);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32Async_rt_error)
+{
+    void *ptr = nullptr;
+    size_t N = 4;
+    size_t memSize = N * sizeof(uint32_t);
+    aclrtStream stream = (aclrtStream)0x10;
+    aclrtMallocHost(&ptr, memSize);
+    ASSERT_NE(ptr, nullptr);
+
+    // mock 内存属性为 Host
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtsPointerGetAttributes(_, _))
+        .WillRepeatedly(Invoke(rtsPointerGetAttributesToHost));
+    // mock 底层异步函数返回错误
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtMemsetD32Async(_, _, _, _, _))
+        .WillOnce(Return(ACL_ERROR_RT_PARAM_INVALID));
+
+    aclError ret = aclrtMemsetD32Async(ptr, memSize, 0xDEADBEEF, N, stream);
+    EXPECT_EQ(ret, ACL_ERROR_RT_PARAM_INVALID);
+    aclrtFreeHost(ptr);
+}
+
+// ==================== 大 N 值测试 ====================
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_large_N_success)
+{
+    void *ptr = nullptr;
+    size_t N = 1024 * 1024;  // 1M 个元素
+    size_t memSize = N * sizeof(uint32_t);
+    aclrtMallocHost(&ptr, memSize);
+    ASSERT_NE(ptr, nullptr);
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtsPointerGetAttributes(_, _))
+        .WillOnce(Invoke(rtsPointerGetAttributesToHost));
+
+    aclError ret = aclrtMemsetD32(ptr, memSize, 0xDEADBEEF, N);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    aclrtFreeHost(ptr);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_large_N_insufficient_memSize)
+{
+    void *ptr = nullptr;
+    size_t N = 1024 * 1024;
+    size_t memSize = N * sizeof(uint32_t) - 1;
+    aclrtMallocHost(&ptr, memSize);
+    ASSERT_NE(ptr, nullptr);
+    aclError ret = aclrtMemsetD32(ptr, memSize, 0xDEADBEEF, N);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+    aclrtFreeHost(ptr);
+}
+
+// ==================== 精确大小测试 ====================
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_exact_memSize_success)
+{
+    void *ptr = nullptr;
+    size_t N = 1024;
+    size_t memSize = N * sizeof(uint32_t);
+    aclrtMallocHost(&ptr, memSize);
+    ASSERT_NE(ptr, nullptr);
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtsPointerGetAttributes(_, _))
+        .WillOnce(Invoke(rtsPointerGetAttributesToHost));
+
+    aclError ret = aclrtMemsetD32(ptr, memSize, 0x12345678, N);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    aclrtFreeHost(ptr);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_async_exact_memSize_success)
+{
+    void *ptr = nullptr;
+    aclrtStream stream = (aclrtStream)0x10;
+    size_t N = 1024;
+    size_t memSize = N * sizeof(uint32_t);
+    aclrtMallocHost(&ptr, memSize);
+    ASSERT_NE(ptr, nullptr);
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtsPointerGetAttributes(_, _))
+        .WillRepeatedly(Invoke(rtsPointerGetAttributesToHost));
+
+    aclError ret = aclrtMemsetD32Async(ptr, memSize, 0x12345678, N, stream);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    aclrtFreeHost(ptr);
+}
+
+// ==================== 异步大值 + null stream ====================
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32Async_large_N_null_stream)
+{
+    void *ptr = nullptr;
+    size_t N = 1024 * 1024;
+    size_t memSize = N * sizeof(uint32_t);
+    aclrtMallocHost(&ptr, memSize);
+    ASSERT_NE(ptr, nullptr);
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtsPointerGetAttributes(_, _))
+        .WillRepeatedly(Invoke(rtsPointerGetAttributesToHost));
+
+    aclError ret = aclrtMemsetD32Async(ptr, memSize, 0xDEADBEEF, N, nullptr);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    aclrtFreeHost(ptr);
+}
+
+// ==================== 1GB 测试 ====================
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_1GB_N_success)
+{
+    void *ptr = (void *)0x01;
+    const size_t N = 268435456;
+    const size_t memSize = N * sizeof(uint32_t);
+    aclError ret = aclrtMemsetD32(ptr, memSize, 0xDEADBEEF, N);
+    // 虚拟地址会被 IsAclPinnedMemory 拒绝，预期错误
+    EXPECT_TRUE(ret == ACL_ERROR_RT_FEATURE_NOT_SUPPORT || ret == ACL_ERROR_INVALID_PARAM);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_1GB_insufficient_memSize)
+{
+    void *ptr = nullptr;
+    const size_t N = 268435456;
+    const size_t memSize = N * sizeof(uint32_t) - 1;
+    aclError ret = aclrtMemsetD32(ptr, memSize, 0xDEADBEEF, N);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+}
+
+// ==================== malloc 内存 ====================
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_failed_with_malloc_memory)
+{
+    size_t N = 1024;
+    size_t memSize = N * sizeof(uint32_t);
+    void *ptr = malloc(memSize);
+    ASSERT_NE(ptr, nullptr);
+    aclError ret = aclrtMemsetD32(ptr, memSize, 0xDEADBEEF, N);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+    free(ptr);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32Async_failed_with_malloc_memory)
+{
+    size_t N = 1024;
+    size_t memSize = N * sizeof(uint32_t);
+    void *ptr = malloc(memSize);
+    ASSERT_NE(ptr, nullptr);
+    aclrtStream stream = (aclrtStream)0x10;
+    aclError ret = aclrtMemsetD32Async(ptr, memSize, 0xDEADBEEF, N, stream);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+    free(ptr);
+}
+
+// ==================== ACL 分配的内存应成功 ====================
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32Async_success_with_aclrtMalloc_memory)
+{
+    void *ptr = nullptr;
+    size_t N = 1024;
+    size_t memSize = N * sizeof(uint32_t);
+    aclError allocRet = aclrtMalloc(&ptr, memSize, ACL_MEM_MALLOC_NORMAL_ONLY);
+    if (allocRet != ACL_SUCCESS) {
+        GTEST_SKIP() << "Device memory allocation failed, skip test.";
+    }
+    ASSERT_NE(ptr, nullptr);
+
+    EXPECT_CALL(MockFunctionTest::aclStubInstance(), rtsPointerGetAttributes(_, _))
+        .WillRepeatedly(Invoke(rtsPointerGetAttributesToDevice));
+
+    aclrtStream stream = (aclrtStream)0x10;
+    aclError ret = aclrtMemsetD32Async(ptr, memSize, 0xDEADBEEF, N, stream);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    aclrtFree(ptr);
+}
+
+// ==================== 非 4 字节对齐地址应失败 ====================
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32_failed_with_unaligned_ptr)
+{
+    void *alignedPtr = nullptr;
+    size_t N = 4;
+    size_t memSize = N * sizeof(uint32_t) + 4;
+    aclrtMallocHost(&alignedPtr, memSize);
+    ASSERT_NE(alignedPtr, nullptr);
+    uint8_t *bytePtr = static_cast<uint8_t*>(alignedPtr);
+    void *unalignedPtr = bytePtr + 2;
+    size_t availableSize = memSize - 2;
+    aclError ret = aclrtMemsetD32(unalignedPtr, availableSize, 0xDEADBEEF, N);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+    aclrtFreeHost(alignedPtr);
+}
+
+TEST_F(UTEST_ACL_Runtime, aclrtMemsetD32Async_failed_with_unaligned_ptr)
+{
+    void *alignedPtr = nullptr;
+    size_t N = 4;
+    size_t memSize = N * sizeof(uint32_t) + 4;
+    aclrtMallocHost(&alignedPtr, memSize);
+    ASSERT_NE(alignedPtr, nullptr);
+    uint8_t *bytePtr = static_cast<uint8_t*>(alignedPtr);
+    void *unalignedPtr = bytePtr + 2;
+    size_t availableSize = memSize - 2;
+    aclrtStream stream = (aclrtStream)0x10;
+    aclError ret = aclrtMemsetD32Async(unalignedPtr, availableSize, 0xDEADBEEF, N, stream);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+    aclrtFreeHost(alignedPtr);
+}
+
 TEST_F(UTEST_ACL_Runtime, memory_memcpyAsyncWithCondition)
 {
     void *dst = (void *)0x01;

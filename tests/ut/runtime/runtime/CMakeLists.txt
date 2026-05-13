@@ -401,6 +401,8 @@ set(runtimeut_src_tiny_exclude_list
     ${TOP_DIR}/src/runtime/core/src/pool/event_pool.cc
     ${TOP_DIR}/src/runtime/core/src/pool/event_expanding.cc
     ${TOP_DIR}/src/runtime/core/src/task/task_info/event/notify_task_v200.cc
+    ${TOP_DIR}/src/runtime/core/src/memory/common_memset_d32.cpp
+    ${TOP_DIR}/src/runtime/core/src/memory/simd_memsetd32.cpp
 )
 
 set(runtimeut_src_tiny_include_list
@@ -516,6 +518,8 @@ set(runtimeut_src_list
     ${TOP_DIR}/src/runtime/core/src/runtime.cc
     ${TOP_DIR}/src/runtime/core/src/device/ini_parse_utils.cc
     ${TOP_DIR}/src/runtime/core/src/memory/mem_type.cc
+    ${TOP_DIR}/src/runtime/core/src/memory/common_memset_d32.cpp
+    ${TOP_DIR}/src/runtime/core/src/memory/simd_memsetd32.cpp
     ${TOP_DIR}/src/runtime/core/src/plugin_manage/runtime_keeper.cc
     ${TOP_DIR}/src/runtime/core/src/plugin_manage/v100/plugin_old_arch.cc
     ${TOP_DIR}/src/runtime/core/src/utils/capability.cc
@@ -666,6 +670,8 @@ set(runtimeut_david_src_list
     ${TOP_DIR}/src/runtime/core/src/runtime.cc
     ${TOP_DIR}/src/runtime/core/src/device/ini_parse_utils.cc
     ${TOP_DIR}/src/runtime/core/src/memory/mem_type.cc
+    ${TOP_DIR}/src/runtime/core/src/memory/common_memset_d32.cpp
+    ${TOP_DIR}/src/runtime/core/src/memory/simd_memsetd32.cpp
     ${TOP_DIR}/src/runtime/core/src/plugin_manage/runtime_keeper.cc
     ${TOP_DIR}/src/runtime/core/src/plugin_manage/v200/plugin_old_arch.cc
     ${TOP_DIR}/src/runtime/core/src/utils/capability.cc
@@ -846,6 +852,7 @@ add_executable(runtime_utest
     #test/platform/cloudv2/rt_utest_ffts.cc
     test/rt_utest_task_stars.cc
     test/platform/others/rt_utest_memory_pool.cc
+    test/platform/others/rt_utest_simd_memsetd32.cc
     test/rt_utest_binary_loader.cc
     test/platform/others/rt_utest_cloudv2_disable_thread_test.cc
     test/platform/others/rt_utest_stream.cc
@@ -1500,6 +1507,8 @@ set(runtimeut_v201_src_list
     ${TOP_DIR}/src/runtime/core/src/runtime.cc
     ${TOP_DIR}/src/runtime/core/src/device/ini_parse_utils.cc
     ${TOP_DIR}/src/runtime/core/src/memory/mem_type.cc
+    ${TOP_DIR}/src/runtime/core/src/memory/common_memset_d32.cpp
+    ${TOP_DIR}/src/runtime/core/src/memory/simd_memsetd32.cpp
     ${TOP_DIR}/src/runtime/core/src/plugin_manage/runtime_keeper.cc
     ${TOP_DIR}/src/runtime/core/src/plugin_manage/v200/plugin_old_arch.cc
     ${TOP_DIR}/src/runtime/core/src/utils/capability.cc

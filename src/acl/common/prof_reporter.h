@@ -311,6 +311,8 @@ namespace acl {
         AclrtLaunchKernelWithArgsArray,
         AclrtFunctionGetParamCount,
         AclrtFunctionGetParamInfo,
+        AclrtMemsetD32,      
+        AclrtMemsetD32Async, 
         // this is the end, can not add after AclRtProfTypeEnd
         AclRtProfTypeEnd
     };

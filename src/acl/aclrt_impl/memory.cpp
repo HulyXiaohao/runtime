@@ -33,6 +33,8 @@ constexpr size_t DATA_MEMORY_ALIGN_SIZE = 32UL;
 constexpr size_t DATA_MEMORY_PADDING_SIZE = 32UL;
 constexpr unsigned int FLAG_START_DYNAMIC_ALLOC_MEM = 0x200U;
 constexpr uint32_t DRV_MEM_HOST_NUMA_SIDE = 2U;
+constexpr size_t ALIGNMENT_4BYTE = 4;
+constexpr size_t ALIGNMENT_4BYTE_MASK = ALIGNMENT_4BYTE - 1;  // 0x3
 
 static const std::map<aclDataType, rtDataType> kMapDataType = {
     { ACL_FLOAT, RT_DATA_TYPE_FP32 },
@@ -718,6 +720,129 @@ aclError aclrtMemsetAsyncImpl(void *devPtr, size_t maxCount, int32_t value, size
 
     ACL_REQUIRES_CALL_RTS_OK(rtMemsetAsync(devPtr, maxCount, static_cast<uint32_t>(value), count, stream),
                              rtMemsetAsync);
+    return ACL_SUCCESS;
+}
+
+// Determine whether it is ACL-allocated pinned memory (Host pinned memory or Device memory)
+static aclError IsAclPinnedMemory(const void* ptr, bool& isAclMem)
+{
+    if (ptr == nullptr) {
+        isAclMem = false;
+        return ACL_SUCCESS;
+    }
+    aclrtPtrAttributes attr;
+    aclError ret = aclrtPointerGetAttributesImpl(ptr, &attr);
+    if (ret != ACL_SUCCESS) {
+        isAclMem = false;
+        return ret;
+    }
+    isAclMem = (attr.location.type == ACL_MEM_LOCATION_TYPE_HOST ||
+                attr.location.type == ACL_MEM_LOCATION_TYPE_DEVICE ||
+                attr.location.type == ACL_MEM_LOCATION_TYPE_HOST_NUMA);
+    return ACL_SUCCESS;
+}
+
+aclError aclrtMemsetD32Impl(void* ptr, size_t memSize, uint32_t value, size_t N)
+{
+    ACL_PROFILING_REG(acl::AclProfType::AclrtMemsetD32);
+
+    ACL_LOG_DEBUG("start to execute aclrtMemsetD32, memSize = %zu, N = %zu, value = 0x%x",
+                  memSize, N, value);
+
+    ACL_REQUIRES_NOT_NULL_WITH_INPUT_REPORT(ptr);
+    ACL_REQUIRES_POSITIVE(N);
+    
+    // Check byte alignment
+    if ((reinterpret_cast<uintptr_t>(ptr) & ALIGNMENT_4BYTE_MASK) != 0) {
+        ACL_LOG_ERROR("Pointer ptr=%p is not 4-byte aligned", ptr);
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
+    const size_t requiredBytes = N * sizeof(uint32_t);
+    if (memSize < requiredBytes) {
+        ACL_LOG_INNER_ERROR("memory size is not enough, required %zu bytes but only %zu bytes",
+                            requiredBytes, memSize);
+        const std::vector<const char*> paramNames = {"param", "value", "reason"};
+        const std::vector<const char*> paramValues = {"N", std::to_string(N).c_str(),
+                                                      "N * 4 must be less than or equal to memSize"};
+        acl::AclErrorLogManager::ReportInputError(acl::INVALID_PARAM_MSG, paramNames, paramValues);
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
+    bool isAclMem = false;
+    aclError ret = IsAclPinnedMemory(ptr, isAclMem);
+    if (ret != ACL_SUCCESS) {
+        ACL_LOG_INNER_ERROR("Failed to check memory type, ret=%d", ret);
+        return ret; 
+    }
+    if (!isAclMem) {
+        ACL_LOG_INNER_ERROR("Only memory allocated by aclrtMalloc or aclrtMallocHost is supported.");
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
+    const rtError_t rtErr = rtMemsetD32(ptr, static_cast<uint64_t>(memSize), value, N);
+    if (rtErr != RT_ERROR_NONE) {
+        if (rtErr == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
+            ACL_LOG_WARN("rtMemsetD32 not support this feature, runtime result = %d", rtErr);
+        } else {
+            ACL_LOG_CALL_ERROR("call rtMemsetD32 failed, runtime result = %d", rtErr);
+            return ACL_GET_ERRCODE_RTS(rtErr);
+        }
+    }
+
+    return ACL_SUCCESS;
+}
+
+aclError aclrtMemsetD32AsyncImpl(void* ptr, size_t memSize, uint32_t value,
+                             size_t N, aclrtStream stream)
+{
+    ACL_PROFILING_REG(acl::AclProfType::AclrtMemsetD32Async);
+
+    ACL_LOG_DEBUG("start to execute aclrtMemsetD32Async, memSize = %zu, N = %zu, value = 0x%x",
+                  memSize, N, value);
+
+    ACL_REQUIRES_NOT_NULL_WITH_INPUT_REPORT(ptr);
+    ACL_REQUIRES_POSITIVE(N);
+
+    // Check byte alignment
+    if ((reinterpret_cast<uintptr_t>(ptr) & ALIGNMENT_4BYTE_MASK) != 0) {
+        ACL_LOG_ERROR("Pointer ptr=%p is not 4-byte aligned", ptr);
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
+    const size_t requiredBytes = N * sizeof(uint32_t);
+    if (memSize < requiredBytes) {
+        ACL_LOG_INNER_ERROR("memory size is not enough, required %zu bytes but only %zu bytes",
+                            requiredBytes, memSize);
+        const std::vector<const char*> paramNames = {"param", "value", "reason"};
+        const std::vector<const char*> paramValues = {"N", std::to_string(N).c_str(),
+                                                      "N * 4 must be less than or equal to memSize"};
+        acl::AclErrorLogManager::ReportInputError(acl::INVALID_PARAM_MSG, paramNames, paramValues);
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
+    bool isAclMem = false;
+    aclError ret = IsAclPinnedMemory(ptr, isAclMem);
+    if (ret != ACL_SUCCESS) {
+        ACL_LOG_INNER_ERROR("Failed to check memory type, ret=%d", ret);
+        return ret; 
+    }
+    if (!isAclMem) {
+        ACL_LOG_INNER_ERROR("Only memory allocated by aclrtMalloc or aclrtMallocHost is supported.");
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
+    const rtError_t rtErr = rtMemsetD32Async(ptr, static_cast<uint64_t>(memSize),
+                                             value, N, static_cast<rtStream_t>(stream));
+    if (rtErr != RT_ERROR_NONE) {
+        if (rtErr == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
+            ACL_LOG_WARN("rtMemsetD32Async not support this feature, runtime result = %d", rtErr);
+        } else {
+            ACL_LOG_CALL_ERROR("call rtMemsetD32Async failed, runtime result = %d", rtErr);
+            return ACL_GET_ERRCODE_RTS(rtErr);
+        }
+    }
+
     return ACL_SUCCESS;
 }
 

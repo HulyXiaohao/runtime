@@ -331,6 +331,8 @@ set(libruntime_v100_src_files
     ${RUNTIME_CORE_DIR}/src/task/task_fail_callback_manager.cc
     ${RUNTIME_CORE_DIR}/src/task/v100/stub_task.cc
     ${RUNTIME_CORE_DIR}/src/memory/mem_type.cc
+    ${RUNTIME_CORE_DIR}/src/memory/common_memset_d32.cpp
+    ${RUNTIME_CORE_DIR}/src/memory/simd_memsetd32.cpp
     ${libruntime_v100_task_src_files}
     ${libruntime_context_src_files}
     ${libruntime_stream_src_files}

@@ -696,6 +696,18 @@ rtError_t ApiDecorator::MemsetAsync(void * const ptr, const uint64_t destMax, co
 {
     return impl_->MemsetAsync(ptr, destMax, val, cnt, stm);
 }
+ rtError_t ApiDecorator::MemsetD32(void * const dst, const uint64_t destMax,
+                                      const uint32_t value, const uint64_t count)
+{
+    return impl_->MemsetD32(dst, destMax, value, count);
+}
+
+rtError_t ApiDecorator::MemsetD32Async(void * const dst, const uint64_t destMax,
+                                       const uint32_t value, const uint64_t count,
+                                       Stream * const stm)
+{
+    return impl_->MemsetD32Async(dst, destMax, value, count, stm);
+}
 
 rtError_t ApiDecorator::MemGetInfoByDeviceId(uint32_t deviceId, bool isHugeOnly, size_t* const freeSize, size_t* const totalSize)
 {

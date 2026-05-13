@@ -109,7 +109,7 @@ namespace acl {
         {AclProfType::AclrtLaunchKernel,                        "aclrtLaunchKernel"},
         {AclProfType::AclrtMemGetAccess,                        "aclrtMemGetAccess"},
         {AclProfType::AclrtMemExportToShareableHandle,          "aclrtMemExportToShareableHandle"},
-        {AclProfType::AclrtMemExportToShareableHandleV2,          "aclrtMemExportToShareableHandleV2"},
+        {AclProfType::AclrtMemExportToShareableHandleV2,         "aclrtMemExportToShareableHandleV2"},
         {AclProfType::AclrtMemImportFromShareableHandle,        "aclrtMemImportFromShareableHandle"},
         {AclProfType::AclrtMemImportFromShareableHandleV2,      "aclrtMemImportFromShareableHandleV2"},
         {AclProfType::AclrtMemGetAllocationGranularity,         "aclrtMemGetAllocationGranularity"},
@@ -307,6 +307,8 @@ namespace acl {
         {AclProfType::AclrtDeviceGetP2PAtomicCapabilities,      "aclrtDeviceGetP2PAtomicCapabilities"},
         {AclProfType::AclrtMemMapSelectedLink,                  "aclrtMemMapSelectedLink"},
         {AclProfType::AclmdlRIGetId,                            "aclmdlRIGetId"},
+        {AclProfType::AclrtMemsetD32,                           "aclrtMemsetD32"},
+        {AclProfType::AclrtMemsetD32Async,                      "aclrtMemsetD32Async"},
 };
 
 aclError RegisterType(const uint32_t index) {

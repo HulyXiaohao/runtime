@@ -12,6 +12,10 @@
 #include "../../data/elf.h"
 #include "../../rt_utest_config_define.hpp"
 #include "rt_unwrap.h"
+#include "npu_driver.hpp"
+#include "common_memset_d32.h"
+#include "simd_memsetd32.h"
+#include "memcpy_c.hpp"
 
 static rtError_t IpcOpenNotifyStubSucc(cce::runtime::ApiImpl *api, Notify ** const retNotify,
                                        const char_t * const name, uint32_t flag)
@@ -7445,4 +7449,388 @@ TEST_F(ApiTest, CheckMemCpyAttr_NumaCoverage)
     rtError_t error = api.CheckMemCpyAttr(dst_ptr, src_ptr, memAttr, dstAttr_actual, srcAttr_actual);
     EXPECT_EQ(error, RT_ERROR_NONE);
     GlobalMockObject::verify();
+}
+
+TEST_F(ApiTest, rtMemsetD32_host_success)
+{
+    rtError_t error;
+    void *hostPtr = nullptr;
+    const uint64_t count = 1024;
+    const uint64_t size = count * sizeof(uint32_t);
+    const uint32_t value = 0xDEADBEEF;
+
+    error = rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+    ASSERT_EQ(error, RT_ERROR_NONE);
+
+    error = rtMemsetD32(hostPtr, size, value, count);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (size_t i = 0; i < count; ++i) {
+        EXPECT_EQ(p[i], value);
+    }
+
+    error = rtFreeHost(hostPtr);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+}
+
+TEST_F(ApiTest, rtMemsetD32_memory_type_host)
+{
+    void *hostPtr = nullptr;
+    const uint64_t count = 1024;
+    const uint64_t size = count * sizeof(uint32_t);
+    rtError_t error = rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+    ASSERT_EQ(error, RT_ERROR_NONE);
+
+    // 直接调用，内部应走 Host 路径（MemsetD32OnHost）
+    error = rtMemsetD32(hostPtr, size, 0xDEADBEEF, count);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+
+    // 验证填充
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (uint64_t i = 0; i < count; ++i) {
+        EXPECT_EQ(p[i], 0xDEADBEEF);
+    }
+    rtFreeHost(hostPtr);
+}
+
+TEST_F(ApiTest, rtMemsetD32_unaligned_host_address)
+{
+    const uint64_t count = 1024;
+    const uint64_t size = count * sizeof(uint32_t);
+    // 分配对齐内存，然后偏移 2 字节（不是 4 的倍数）
+    void *alignedPtr = nullptr;
+    rtMallocHost(&alignedPtr, size + 4, DEFAULT_MODULEID);
+    ASSERT_NE(alignedPtr, nullptr);
+
+    uint8_t *bytePtr = static_cast<uint8_t*>(alignedPtr);
+    uint32_t *unalignedDst = reinterpret_cast<uint32_t*>(bytePtr + 2);  // 非 4 字节对齐
+    uint64_t availableCount = (size - 2) / sizeof(uint32_t);
+
+    rtError_t error = rtMemsetD32(unalignedDst, size - 2, 0xDEADBEEF, availableCount);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+
+    rtFreeHost(alignedPtr);
+}
+
+TEST_F(ApiTest, rtMemsetD32_unaligned_count_in_simd)
+{
+    // 测试非 SIMD 步长的 count（例如 count = 1025，需要 SIMD + 标量尾部）
+    const uint64_t count = 1025;  // 不是 8 的倍数（AVX2 步长 8）
+    const uint64_t size = count * sizeof(uint32_t);
+    void *hostPtr = nullptr;
+    rtError_t error = rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+    ASSERT_EQ(error, RT_ERROR_NONE);
+
+    error = rtMemsetD32(hostPtr, size, 0x5A5A5A5A, count);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (uint64_t i = 0; i < count; ++i) {
+        EXPECT_EQ(p[i], 0x5A5A5A5A);
+    }
+    rtFreeHost(hostPtr);
+}
+
+TEST_F(ApiTest, rtMemsetD32_min_count)
+{
+    const uint64_t count = 1;
+    const uint64_t size = count * sizeof(uint32_t);
+    void *hostPtr = nullptr;
+    rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+
+    rtError_t error = rtMemsetD32(hostPtr, size, 0xDEADBEEF, count);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    EXPECT_EQ(p[0], 0xDEADBEEF);
+    rtFreeHost(hostPtr);
+}
+
+TEST_F(ApiTest, rtMemsetD32_value_all_zero)
+{
+    const uint64_t count = 1024;
+    const uint64_t size = count * sizeof(uint32_t);
+    void *hostPtr = nullptr;
+    rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+
+    rtError_t error = rtMemsetD32(hostPtr, size, 0, count);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (uint64_t i = 0; i < count; ++i) {
+        EXPECT_EQ(p[i], 0);
+    }
+    rtFreeHost(hostPtr);
+}
+
+TEST_F(ApiTest, rtMemsetD32_value_all_one)
+{
+    const uint64_t count = 1024;
+    const uint64_t size = count * sizeof(uint32_t);
+    void *hostPtr = nullptr;
+    rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+
+    const uint32_t value = 0xFFFFFFFF;
+    rtError_t error = rtMemsetD32(hostPtr, size, value, count);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (uint64_t i = 0; i < count; ++i) {
+        EXPECT_EQ(p[i], value);
+    }
+    rtFreeHost(hostPtr);
+}
+
+// 同步 Host 填充（应走到 MemsetD32OnHost）
+TEST_F(ApiTest, rtMemsetD32_host_sync) {
+    const size_t N = 1024;
+    const size_t size = N * sizeof(uint32_t);
+    void *hostPtr = nullptr;
+    ASSERT_EQ(rtMallocHost(&hostPtr, size, DEFAULT_MODULEID), RT_ERROR_NONE);
+    uint32_t value = 0xDEADBEEF;
+    rtError_t ret = rtMemsetD32(hostPtr, size, value, N);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (size_t i = 0; i < N; ++i) {
+        EXPECT_EQ(p[i], value);
+    }
+    rtFreeHost(hostPtr);
+}
+
+// ==================== 覆盖 Host 路径 ====================
+TEST_F(ApiTest, rtMemsetD32_host_sync_1) {
+    // 使用 rtMallocHost 分配 Host 锁页内存，使内存类型为 RT_MEMORY_LOC_HOST
+    void *hostPtr = nullptr;
+    const size_t N = 1024;
+    const size_t size = N * sizeof(uint32_t);
+    rtError_t ret = rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+
+    uint32_t value = 0xDEADBEEF;
+    ret = rtMemsetD32(hostPtr, size, value, N);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (size_t i = 0; i < N; ++i) {
+        ASSERT_EQ(p[i], value);
+    }
+    rtFreeHost(hostPtr);
+}
+
+// 同步装饰器 + Host 路径覆盖
+TEST_F(ApiTest, rtMemsetD32_decorator_host) {
+    void *hostPtr = nullptr;
+    const size_t N = 1024;
+    const size_t size = N * sizeof(uint32_t);
+    // 使用 rtMallocHost 分配 Host 锁页内存
+    ASSERT_EQ(rtMallocHost(&hostPtr, size, DEFAULT_MODULEID), RT_ERROR_NONE);
+    uint32_t value = 0xDEADBEEF;
+    rtError_t ret = rtMemsetD32(hostPtr, size, value, N);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (size_t i = 0; i < N; ++i) EXPECT_EQ(p[i], value);
+    rtFreeHost(hostPtr);
+}
+
+// ==================== 覆盖 Host 路径（同步 & 异步） ====================
+TEST_F(ApiTest, rtMemsetD32_host_sync_2) {
+    void *hostPtr = nullptr;
+    const size_t N = 1024;
+    const size_t size = N * sizeof(uint32_t);
+    rtError_t ret = rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+
+    uint32_t value = 0xDEADBEEF;
+    ret = rtMemsetD32(hostPtr, size, value, N);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (size_t i = 0; i < N; ++i) {
+        EXPECT_EQ(p[i], value);
+    }
+    rtFreeHost(hostPtr);
+}
+
+TEST_F(ApiTest, rtMemsetD32_async_host) {
+    void *hostPtr = nullptr;
+    const size_t N = 1024;
+    const size_t size = N * sizeof(uint32_t);
+    rtError_t ret = rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+
+    rtStream_t stream = nullptr;
+    ret = rtStreamCreate(&stream, 0);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+
+    uint32_t value = 0xBAADF00D;
+    ret = rtMemsetD32Async(hostPtr, size, value, N, stream);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+
+    ret = rtStreamSynchronize(stream);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (size_t i = 0; i < N; ++i) {
+        EXPECT_EQ(p[i], value);
+    }
+    rtStreamDestroy(stream);
+    rtFreeHost(hostPtr);
+}
+
+// ==================== 覆盖 Device 路径（同步 & 异步） ====================
+TEST_F(ApiTest, rtMemsetD32_device_sync) {
+    void *devPtr = nullptr;
+    const size_t N = 1024;
+    const size_t size = N * sizeof(uint32_t);
+    rtError_t ret = rtMalloc(&devPtr, size, RT_MEMORY_HBM, DEFAULT_MODULEID);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+
+    uint32_t value = 0x12345678;
+    ret = rtMemsetD32(devPtr, size, value, N);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+
+    // 回拷验证
+    void *hostPtr = nullptr;
+    ret = rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+    ret = rtMemcpy(hostPtr, size, devPtr, size, RT_MEMCPY_DEVICE_TO_HOST);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (size_t i = 0; i < N; ++i) {
+        EXPECT_EQ(p[i], value);
+    }
+    rtFreeHost(hostPtr);
+    rtFree(devPtr);
+}
+
+TEST_F(ApiTest, rtMemsetD32_async_device) {
+    void *devPtr = nullptr;
+    const size_t N = 1024;
+    const size_t size = N * sizeof(uint32_t);
+    rtError_t ret = rtMalloc(&devPtr, size, RT_MEMORY_HBM, DEFAULT_MODULEID);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+
+    rtStream_t stream = nullptr;
+    ret = rtStreamCreate(&stream, 0);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+
+    uint32_t value = 0x5A5A5A5A;
+    ret = rtMemsetD32Async(devPtr, size, value, N, stream);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+    ret = rtStreamSynchronize(stream);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+
+    void *hostPtr = nullptr;
+    ret = rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+    ret = rtMemcpy(hostPtr, size, devPtr, size, RT_MEMCPY_DEVICE_TO_HOST);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+    uint32_t *p = static_cast<uint32_t*>(hostPtr);
+    for (size_t i = 0; i < N; ++i) {
+        EXPECT_EQ(p[i], value);
+    }
+    rtFreeHost(hostPtr);
+    rtStreamDestroy(stream);
+    rtFree(devPtr);
+}
+
+// 大数据量（256MB）测试，验证分块逻辑
+TEST_F(ApiTest, rtMemsetD32_large_device) {
+    const size_t N = 64 * 1024 * 1024 / sizeof(uint32_t); // 64MB 元素 = 256MB
+    size_t size = N * sizeof(uint32_t);
+    void *devPtr = nullptr;
+    rtError_t ret = rtMalloc(&devPtr, size, RT_MEMORY_HBM, DEFAULT_MODULEID);
+    if (ret != RT_ERROR_NONE) GTEST_SKIP() << "Cannot allocate 256MB device memory";
+    uint32_t value = 0x5A5A5A5A;
+    ret = rtMemsetD32(devPtr, size, value, N);
+    EXPECT_EQ(ret, RT_ERROR_NONE);
+    rtFree(devPtr);
+}
+
+TEST_F(ApiTest, rtMemsetD32_host_mem_alloc_failure) {
+    // Mock rtMallocHost 返回错误
+    MOCKER(rtMallocHost).stubs().with(mockcpp::any(), mockcpp::any(), mockcpp::any())
+        .will(returnValue(RT_ERROR_MEMORY_ALLOCATION));
+
+    void *hostPtr = nullptr;
+    rtError_t error = rtMallocHost(&hostPtr, 1024, DEFAULT_MODULEID);
+    EXPECT_EQ(error, RT_ERROR_MEMORY_ALLOCATION);
+}
+
+// 参数校验：仅验证返回非成功
+TEST_F(ApiTest, rtMemsetD32_invalid_params) {
+    void *dummy = (void*)0x1234;
+    EXPECT_NE(rtMemsetD32(nullptr, 1024, 0, 100), RT_ERROR_NONE);
+    EXPECT_NE(rtMemsetD32(dummy, 1024, 0, 0), RT_ERROR_NONE);
+    EXPECT_NE(rtMemsetD32(dummy, 100, 0, 100), RT_ERROR_NONE);
+}
+
+TEST_F(ApiTest, rtMemsetD32_async_invalid_params) {
+    void *dummy = (void*)0x1234;
+    EXPECT_NE(rtMemsetD32Async(nullptr, 1024, 0, 100, stream_), RT_ERROR_NONE);
+    EXPECT_NE(rtMemsetD32Async(dummy, 1024, 0, 0, stream_), RT_ERROR_NONE);
+    EXPECT_NE(rtMemsetD32Async(dummy, 100, 0, 100, stream_), RT_ERROR_NONE);
+}
+
+TEST_F(ApiTest, rtMemsetD32_zero_N) {
+    void *hostPtr = nullptr;
+    size_t size = 1024;
+    rtError_t ret = rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+    ret = rtMemsetD32(hostPtr, size, 0xDEADBEEF, 0);
+    EXPECT_NE(ret, RT_ERROR_NONE);
+    rtFreeHost(hostPtr);
+}
+
+TEST_F(ApiTest, rtMemsetD32_null_dst) {
+    rtError_t ret = rtMemsetD32(nullptr, 1024, 0xDEADBEEF, 100);
+    EXPECT_NE(ret, RT_ERROR_NONE);
+}
+
+TEST_F(ApiTest, rtMemsetD32_insufficient_destMax) {
+    void *devPtr = nullptr;
+    size_t N = 1024;
+    size_t fullSize = N * sizeof(uint32_t);
+    rtError_t ret = rtMalloc(&devPtr, fullSize, RT_MEMORY_HBM, DEFAULT_MODULEID);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+    ret = rtMemsetD32(devPtr, fullSize - 1, 0xDEADBEEF, N);
+    EXPECT_NE(ret, RT_ERROR_NONE);
+    rtFree(devPtr);
+}
+
+// 异步版本同样
+TEST_F(ApiTest, rtMemsetD32Async_null_dst) {
+    rtStream_t stream = nullptr;
+    rtStreamCreate(&stream, 0);
+    rtError_t ret = rtMemsetD32Async(nullptr, 1024, 0xDEADBEEF, 100, stream);
+    EXPECT_NE(ret, RT_ERROR_NONE);
+    rtStreamDestroy(stream);
+}
+
+TEST_F(ApiTest, rtMemsetD32Async_zero_N) {
+    void *hostPtr = nullptr;
+    size_t size = 1024;
+    rtError_t ret = rtMallocHost(&hostPtr, size, DEFAULT_MODULEID);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+    rtStream_t stream = nullptr;
+    rtStreamCreate(&stream, 0);
+    ret = rtMemsetD32Async(hostPtr, size, 0xDEADBEEF, 0, stream);
+    EXPECT_NE(ret, RT_ERROR_NONE);
+    rtFreeHost(hostPtr);
+    rtStreamDestroy(stream);
+}
+
+TEST_F(ApiTest, rtMemsetD32Async_insufficient_destMax) {
+    void *devPtr = nullptr;
+    size_t N = 1024;
+    size_t fullSize = N * sizeof(uint32_t);
+    rtError_t ret = rtMalloc(&devPtr, fullSize, RT_MEMORY_HBM, DEFAULT_MODULEID);
+    ASSERT_EQ(ret, RT_ERROR_NONE);
+    rtStream_t stream = nullptr;
+    rtStreamCreate(&stream, 0);
+    ret = rtMemsetD32Async(devPtr, fullSize - 1, 0xDEADBEEF, N, stream);
+    EXPECT_NE(ret, RT_ERROR_NONE);
+    rtFree(devPtr);
+    rtStreamDestroy(stream);
 }

@@ -8,6 +8,9 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 #include "api_error.hpp"
+#include "simd_memsetd32.h"
+#include "common_memset_d32.h"
+
 namespace cce {
 namespace runtime {
 
@@ -198,6 +201,28 @@ rtError_t ApiErrorDecorator::GetDeviceInfoFromPlatformInfo(const uint32_t device
     UNUSED(label);
     UNUSED(key);
     UNUSED(value);
+    return RT_ERROR_FEATURE_NOT_SUPPORT;
+}
+
+rtError_t ApiErrorDecorator::MemsetD32(void * const dst, const uint64_t destMax,
+                                           const uint32_t value, const uint64_t count)
+{
+    (void)dst;
+    (void)destMax;
+    (void)value;
+    (void)count;
+    return RT_ERROR_FEATURE_NOT_SUPPORT;
+}
+
+rtError_t ApiErrorDecorator::MemsetD32Async(void * const dst, const uint64_t destMax,
+                                            const uint32_t value, const uint64_t count,
+                                            Stream * const stm)
+{
+    (void)dst;
+    (void)destMax;
+    (void)value;
+    (void)count;
+    (void)stm;
     return RT_ERROR_FEATURE_NOT_SUPPORT;
 }
 

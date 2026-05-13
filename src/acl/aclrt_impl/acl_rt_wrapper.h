@@ -93,6 +93,8 @@
     _(aclError, aclrtMemcpy, (void * dst, size_t destMax, const void * src, size_t count, aclrtMemcpyKind kind), (dst, destMax, src, count, kind)) \
     _(aclError, aclrtMemset, (void * devPtr, size_t maxCount, int32_t value, size_t count), (devPtr, maxCount, value, count)) \
     _(aclError, aclrtMemcpyAsync, (void * dst, size_t destMax, const void * src, size_t count, aclrtMemcpyKind kind, aclrtStream stream), (dst, destMax, src, count, kind, stream)) \
+    _(aclError, aclrtMemsetD32, (void * ptr, size_t memSize, uint32_t value, size_t N), (ptr, memSize, value, N)) \
+    _(aclError, aclrtMemsetD32Async, (void * ptr, size_t memSize, uint32_t value, size_t N, aclrtStream stream), (ptr, memSize, value, N, stream)) \
     _(aclError, aclrtMemcpyAsyncWithCondition, (void * dst, size_t destMax, const void * src, size_t count, aclrtMemcpyKind kind, aclrtStream stream), (dst, destMax, src, count, kind, stream)) \
     _(aclError, aclrtMemcpy2d, (void * dst, size_t dpitch, const void * src, size_t spitch, size_t width, size_t height, aclrtMemcpyKind kind), (dst, dpitch, src, spitch, width, height, kind)) \
     _(aclError, aclrtMemcpy2dAsync, (void * dst, size_t dpitch, const void * src, size_t spitch, size_t width, size_t height, aclrtMemcpyKind kind, aclrtStream stream), (dst, dpitch, src, spitch, width, height, kind, stream)) \

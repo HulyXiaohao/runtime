@@ -54,6 +54,27 @@ rtError_t rtMemcpyAsyncWithOffset(void **dst, uint64_t dstMax, uint64_t dstDataO
 }
 
 VISIBILITY_DEFAULT
+rtError_t rtMemsetD32(void* dst, uint64_t destMax, uint32_t value, uint64_t count)
+{
+    (void)dst;
+    (void)destMax;
+    (void)value;
+    (void)count;
+    return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+}
+
+VISIBILITY_DEFAULT
+rtError_t rtMemsetD32Async(void* dst, uint64_t destMax, uint32_t value, uint64_t count, rtStream_t stm)
+{
+    (void)dst;
+    (void)destMax;
+    (void)value;
+    (void)count;
+    (void)stm;
+    return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+}
+
+VISIBILITY_DEFAULT
 rtError_t rtMemAdvise(void* devPtr, uint64_t count, uint32_t advise)
 {
     (void)devPtr;

@@ -293,6 +293,8 @@ set(runtimeut_910b_src_list
     ${TOP_DIR}/src/runtime/core/src/runtime.cc
     ${TOP_DIR}/src/runtime/core/src/device/ini_parse_utils.cc
     ${TOP_DIR}/src/runtime/core/src/memory/mem_type.cc
+    ${TOP_DIR}/src/runtime/core/src/memory/common_memset_d32.cpp
+    ${TOP_DIR}/src/runtime/core/src/memory/simd_memsetd32.cpp
     ${TOP_DIR}/src/runtime/core/src/plugin_manage/runtime_keeper.cc
     ${TOP_DIR}/src/runtime/core/src/plugin_manage/v200/plugin_old_arch.cc
     ${TOP_DIR}/src/runtime/core/src/utils/capability.cc

@@ -367,6 +367,8 @@ set(libruntime_v200_v201_common_src_files
     ${RUNTIME_CORE_DIR}/src/notify/notify_c.cc
     ${RUNTIME_CORE_DIR}/src/profiler/profiler_c.cc
     ${RUNTIME_CORE_DIR}/src/memory/mem_type.cc
+    ${RUNTIME_CORE_DIR}/src/memory/common_memset_d32.cpp
+    ${RUNTIME_CORE_DIR}/src/memory/simd_memsetd32.cpp
 )
 
 #------------------------- runtime v200 -------------------------

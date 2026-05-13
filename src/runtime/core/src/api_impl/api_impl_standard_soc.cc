@@ -47,6 +47,8 @@
 #include "ipc_event.hpp"
 #include "inner_thread_local.hpp"
 #include "soma.hpp"
+#include "simd_memsetd32.h"
+#include "common_memset_d32.h"
 
 namespace {
 using DevInfo = struct {
@@ -488,6 +490,67 @@ rtError_t ApiImpl::IpcOpenEventHandle(rtIpcEventHandle_t *handle, IpcEvent** con
     InitEmbeddedInnerHandle<Event>(*event);
     return RT_ERROR_NONE;
 }
+
+rtError_t ApiImpl::MemsetD32(void* const dst, const uint64_t destMax, const uint32_t value, const uint64_t count)
+{
+	RT_LOG(RT_LOG_DEBUG, "MemsetD32 sync, count=%zu, value=0x%x", count, value);
+    // 1. Basic parameter validation
+	// 2. Get current context and device
+	Context* const curCtx = CurrentContext();
+	CHECK_CONTEXT_VALID_WITH_RETURN(curCtx, RT_ERROR_CONTEXT_NULL);
+	
+	Device* device = curCtx->Device_();
+	NULL_PTR_RETURN_MSG_OUTER(device, RT_ERROR_INVALID_VALUE);
+	
+	const rtError_t deviceStatus = device->GetDeviceStatus();
+	COND_PROC((deviceStatus == RT_ERROR_DEVICE_TASK_ABORT), return deviceStatus);
+	
+	// 3. Get memory location attributes
+	rtPtrAttributes_t attr;
+	rtError_t error = device->Driver_()->PtrGetAttributes(dst, &attr);
+	ERROR_RETURN_MSG_INNER(error, "Get pointer attribute failed, retCode=%#x.", error);
+	
+	// 4. Select execution path based on memory location
+    if (attr.location.type == RT_MEMORY_LOC_HOST || attr.location.type == RT_MEMORY_LOC_HOST_NUMA) {
+       return MemsetD32OnHost(dst, destMax, value, count);
+    } else {
+       return MemsetD32OnDevice(dst, destMax, value, count, nullptr, false);
+    }
+}
+
+rtError_t ApiImpl::MemsetD32Async(void* const dst, const uint64_t destMax, const uint32_t value, const uint64_t count, Stream* const stm)
+{
+    RT_LOG(RT_LOG_DEBUG, "MemsetD32 async, count=%zu, value=0x%x", count, value);
+    // 1. Basic parameter validation
+    // 2. Get current context and device
+    Context* const curCtx = CurrentContext();
+    CHECK_CONTEXT_VALID_WITH_RETURN(curCtx, RT_ERROR_CONTEXT_NULL);
+
+    // 3. Get stream (use default stream if null)
+    Stream* curStm = stm;
+     
+    // 4. Get memory location attributes
+    Device* device = curCtx->Device_();
+    NULL_PTR_RETURN_MSG_OUTER(device, RT_ERROR_INVALID_VALUE);
+
+    rtPtrAttributes_t attr;
+    rtError_t error = device->Driver_()->PtrGetAttributes(dst, &attr);
+    ERROR_RETURN_MSG_INNER(error, "Get pointer attribute failed, retCode=%#x.", error);
+
+    // 5. Select execution path based on memory location
+    if (attr.location.type == RT_MEMORY_LOC_HOST || attr.location.type == RT_MEMORY_LOC_HOST_NUMA) {
+        return MemsetD32OnHost(dst, destMax, value, count);
+    } else {
+        if (curStm == nullptr) {
+            curStm = curCtx->DefaultStream_();
+            NULL_STREAM_PTR_RETURN_MSG(curStm);
+        }
+        COND_RETURN_AND_MSG_INVALID_CONTEXT(curStm->Context_() != curCtx, RT_ERROR_STREAM_CONTEXT, 
+            "stream " + std::to_string(curStm->Id_()));
+        return MemsetD32OnDevice(dst, destMax, value, count, curStm, true);
+    }
+}
+
 
 }
 }

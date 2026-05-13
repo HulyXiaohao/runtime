@@ -146,6 +146,8 @@ public:
     virtual rtError_t rtMemcpy(void *dst, uint64_t destMax, const void *src, uint64_t count, rtMemcpyKind_t kind);
     virtual rtError_t rtMemcpyAsync(void *dst, uint64_t destMax, const void *src, uint64_t count, rtMemcpyKind_t kind,
                                     rtStream_t stream);
+    virtual rtError_t rtMemsetD32(void *dst, uint64_t destMax, uint32_t value, uint64_t count);
+    virtual rtError_t rtMemsetD32Async(void *dst, uint64_t destMax, uint32_t value, uint64_t count, rtStream_t stm);
     virtual rtError_t rtMemcpyAsyncEx(void *dst, uint64_t destMax, const void *src, uint64_t count, rtMemcpyKind_t kind,
                                     rtStream_t stream, rtMemcpyConfig_t *memcpyConfig);
     virtual rtError_t rtMemsetAsync(void *ptr, uint64_t destMax, uint32_t value, uint64_t count, rtStream_t stream);
@@ -667,6 +669,8 @@ public:
                                           rtStream_t stream));
     MOCK_METHOD7(rtMemcpyAsyncEx, rtError_t(void *dst, uint64_t destMax, const void *src, uint64_t count,
                                             rtMemcpyKind_t kind, rtStream_t stream, rtMemcpyConfig_t *memcpyConfig));
+    MOCK_METHOD4(rtMemsetD32, rtError_t(void*, uint64_t, uint32_t, uint64_t));
+    MOCK_METHOD5(rtMemsetD32Async, rtError_t(void*, uint64_t, uint32_t, uint64_t, rtStream_t));
     MOCK_METHOD5(rtMemsetAsync, rtError_t(void *ptr, uint64_t destMax, uint32_t value, uint64_t count, rtStream_t stream));
     MOCK_METHOD7(rtCpuKernelLaunchWithFlag, rtError_t(const void *soName, const void *kernelName, uint32_t numBlocks,
             const rtArgsEx_t *argsInfo, rtSmDesc_t *smDesc, rtStream_t stm, uint32_t flags));

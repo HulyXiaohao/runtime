@@ -371,6 +371,25 @@ rtError_t aclStub::rtMemcpyAsync(void *dst,  uint64_t destMax, const void *src, 
     return RT_ERROR_NONE;
 }
 
+rtError_t aclStub::rtMemsetD32(void *dst, uint64_t destMax, uint32_t value, uint64_t count)
+{
+    (void)dst; 
+    (void)destMax; 
+    (void)value; 
+    (void)count;
+    return RT_ERROR_NONE;
+}
+
+rtError_t aclStub::rtMemsetD32Async(void *dst, uint64_t destMax, uint32_t value, uint64_t count, rtStream_t stm)
+{
+    (void)dst; 
+    (void)destMax; 
+    (void)value; 
+    (void)count; 
+    (void)stm;
+    return RT_ERROR_NONE;
+}
+
 rtError_t aclStub::rtMemcpyAsyncEx(void *dst, uint64_t destMax, const void *src, uint64_t count, rtMemcpyKind_t kind, rtStream_t stream, rtMemcpyConfig_t *memcpyConfig)
 {
     return RT_ERROR_NONE;
@@ -2903,6 +2922,16 @@ rtError_t rtMemcpy(void *dst,  uint64_t destMax, const void *src, uint64_t count
 rtError_t rtMemcpyAsync(void *dst,  uint64_t destMax, const void *src, uint64_t count, rtMemcpyKind_t kind, rtStream_t stream)
 {
     return MockFunctionTest::aclStubInstance().rtMemcpyAsync(dst, destMax, src, count, kind, stream);
+}
+
+rtError_t rtMemsetD32(void *dst, uint64_t destMax, uint32_t value, uint64_t count)
+{
+    return MockFunctionTest::aclStubInstance().rtMemsetD32(dst, destMax, value, count);
+}
+
+rtError_t rtMemsetD32Async(void *dst, uint64_t destMax, uint32_t value, uint64_t count, rtStream_t stm)
+{
+    return MockFunctionTest::aclStubInstance().rtMemsetD32Async(dst, destMax, value, count, stm);
 }
 
 rtError_t rtMemcpyAsyncEx(void *dst,  uint64_t destMax, const void *src, uint64_t count, rtMemcpyKind_t kind,

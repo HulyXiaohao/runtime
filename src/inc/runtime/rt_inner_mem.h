@@ -277,6 +277,31 @@ RTS_API rtError_t rtMemManagedPrefetchBatchAsync(const void** ptrs, size_t* size
  * @return RT_ERROR_DRV_ERR for driver error.
  */
 RTS_API rtError_t rtMemMapSelectedLink(void *virPtrDst, size_t size, void *virPtrSrc, uint32_t linkIdx);
+
+/**
+ * @ingroup dvrt_mem
+ * @brief set memory with uint32_t value (element-wise)
+ * @param [in] dst      destination address
+ * @param [in] destMax  length of destination address memory in bytes
+ * @param [in] value    32-bit value to fill
+ * @param [in] count    number of uint32_t elements to set
+ * @return RT_ERROR_NONE for ok, errno for failed
+ * @return RT_ERROR_INVALID_VALUE for error input
+ */
+RTS_API rtError_t rtMemsetD32(void *dst, uint64_t destMax, uint32_t value, uint64_t count);
+
+/**
+ * @ingroup dvrt_mem
+ * @brief set memory with uint32_t value asynchronously (element-wise)
+ * @param [in] dst      destination address
+ * @param [in] destMax  length of destination address memory in bytes
+ * @param [in] value    32-bit value to fill
+ * @param [in] count    number of uint32_t elements to set
+ * @param [in] stm      stream handle
+ * @return RT_ERROR_NONE for ok, errno for failed
+ * @return RT_ERROR_INVALID_VALUE for error input
+ */
+RTS_API rtError_t rtMemsetD32Async(void *dst, uint64_t destMax, uint32_t value, uint64_t count, rtStream_t stm);
 #if defined(__cplusplus)
 }
 #endif

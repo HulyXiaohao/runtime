@@ -10812,4 +10812,3 @@ TEST_F(ApiDavidTest, StreamWriteValuePtr_UnalignedAddr)
     rtError_t error = StreamWriteValuePtr(&writeValueInfo, stream_, nullptr);
     EXPECT_EQ(error, RT_ERROR_INVALID_VALUE);
 }
-

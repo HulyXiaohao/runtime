@@ -9,6 +9,9 @@
  */
 #include "api_impl.hpp"
 #include "api_impl_soma.hpp"
+#include "simd_memsetd32.h"
+#include "common_memset_d32.h"
+
 namespace cce {
 namespace runtime {
 
@@ -380,6 +383,25 @@ rtError_t ApiImpl::MemManagedPrefetchBatchAsync(const void** ptrs, size_t* sizes
     UNUSED(numPrefetchLocs);
     UNUSED(flags);
     UNUSED(stream);
+    return RT_ERROR_FEATURE_NOT_SUPPORT;
+}
+
+rtError_t ApiImpl::MemsetD32(void* dst, uint64_t destMax, uint32_t value, uint64_t count)
+{
+    (void)dst;
+    (void)destMax;
+    (void)value;
+    (void)count;
+    return RT_ERROR_FEATURE_NOT_SUPPORT;
+}
+
+rtError_t ApiImpl::MemsetD32Async(void* dst, uint64_t destMax, uint32_t value, uint64_t count, Stream* stm)
+{
+    (void)dst;
+    (void)destMax;
+    (void)value;
+    (void)count;
+    (void)stm;
     return RT_ERROR_FEATURE_NOT_SUPPORT;
 }
 

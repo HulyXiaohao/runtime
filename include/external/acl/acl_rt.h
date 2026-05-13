@@ -2211,6 +2211,61 @@ ACL_FUNC_VISIBILITY aclError aclrtMemcpyAsync(void *dst,
 
 /**
  * @ingroup AscendCL
+ * @brief Initialize memory and set contents of memory to specified 32-bit unsigned value (element-wise)
+ *
+ * @par Function
+ *  The memory to be initialized can be on the Host or Device side,
+ *  and the system determines the location according to the address.
+ *  This interface fills memory with the specified uint32_t value,
+ *  where @a N specifies the number of uint32_t elements to be set.
+ *
+ * @param ptr [IN]     Starting address of memory 
+ * @param memSize [IN] Max length of the memory buffer in bytes (must be >= N * 4)
+ * @param value [IN]   32-bit unsigned integer value to fill
+ * @param N [IN]       Number of uint32_t elements to set
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtMemsetD32(void* ptr, size_t memSize, uint32_t value, size_t N);
+
+/**
+ * @ingroup AscendCL
+ * @brief Asynchronously initialize memory and set contents of memory to specified 32-bit unsigned value (element-wise)
+ *
+ * @par Function
+ *  The memory to be initialized can be on the Host or Device side,
+ *  and the system determines the location according to the address.
+ *  For Host memory, the fill operation is performed synchronously
+ *  For Device memory, a temporary pinned host buffer is filled with SIMD,
+ *  then the data is asynchronously copied to the device memory on the specified stream.
+ *  After calling this interface, the caller should ensure the stream synchronization
+ *  (e.g., aclrtSynchronizeStream) if the filled memory is to be used immediately.
+ *
+ * @par Restriction
+ * @li For device memory, the fill task is queued on the specified stream;
+ *     the memory may not be actually filled until the stream is synchronized.
+ * @li If stream is nullptr, the default stream of the current context is used.
+ *
+ * @param ptr [IN]     Starting address of memory
+ * @param memSize [IN] Max length of the memory buffer in bytes (must be >= N * 4)
+ * @param value [IN]   32-bit unsigned integer value to fill
+ * @param N [IN]       Number of uint32_t elements to set
+ * @param stream [IN]  Stream handle for the asynchronous fill task
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see aclrtSynchronizeStream
+ */
+ACL_FUNC_VISIBILITY aclError aclrtMemsetD32Async(void* ptr, 
+                                                 size_t memSize,
+                                                 uint32_t value, 
+                                                 size_t N,
+                                                 aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
  * @brief  Asynchronous memory replication between Host and Device, would
  *         be synchronous if memory is not allocated via calling acl or rts api.
  *

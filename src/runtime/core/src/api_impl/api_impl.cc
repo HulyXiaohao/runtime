@@ -80,6 +80,8 @@
 #include "platform_manager_v2.h"
 #include "xpu_aicpu_c.hpp"
 #include "fast_recover.hpp"
+#include "simd_memsetd32.h"
+#include "common_memset_d32.h"
 
 #define RT_DRV_FAULT_CNT 25U
 #define NULL_STREAM_PTR_RETURN_MSG(STREAM)     NULL_PTR_RETURN_MSG((STREAM), RT_ERROR_STREAM_NULL)
