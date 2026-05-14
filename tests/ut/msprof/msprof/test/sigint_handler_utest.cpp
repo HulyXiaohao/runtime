@@ -20,6 +20,10 @@ using ProfSignalHandler = void (*)(int);
 
 class SigintHandlerUtest : public testing::Test {
 protected:
+    void SetUp() override
+    {
+        ProfAclMgr::instance()->UnInit();
+    }
     void TearDown() override
     {
         GlobalMockObject::verify();

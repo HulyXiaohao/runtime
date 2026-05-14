@@ -41,6 +41,7 @@ set(localSrcFiles
     test/select_operation_test.cpp
     test/file_slice_test.cpp
     test/file_ageing_test.cpp
+    #test/epoll_operation_test.cpp
     ../../stub/common-utils-stub.cpp
     ../../stub/hdc-log-stub.cpp
     ../../stub/devdrv_runtime_api_stub.cpp

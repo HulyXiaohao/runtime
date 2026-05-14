@@ -25,6 +25,7 @@ set(profilerSrcList
     ${MSPROF_SOURCE_DIR}/dvvp/analyze/src/analyzer_ts.cpp
     ${MSPROF_SOURCE_DIR}/dvvp/analyze/src/analyzer_rt.cpp
     ${MSPROF_SOURCE_DIR}/dvvp/analyze/src/op_desc_parser.cpp
+    ${MSPROF_SOURCE_DIR}/dvvp/common/argparse/argparser.cpp
     ${MSPROF_SOURCE_DIR}/dvvp/common/cmd_log/cmd_log.cpp
     ${MSPROF_SOURCE_DIR}/dvvp/common/socket/local_socket.cpp
     ${MSPROF_SOURCE_DIR}/dvvp/common/config/closed/config_manager.cpp
@@ -146,8 +147,7 @@ set(profilerSrcList
 
 set(profilerSrcFile
     test/main.cpp
-    #test/msprof_reporter_utest.cpp
-    #test/prof_acl_core_utest.cpp
+    test/msprof_reporter_utest.cpp
     test/sigint_handler_utest.cpp
     test/platform_utest.cpp
     test/msprof_dynamic_utest.cpp
@@ -164,6 +164,23 @@ set(profilerSrcFile
     ../stub/error_manager_stub2.cpp
     test/json_parser_utest.cpp
     test/devprof_drv_str2id_utest.cpp
+    #test/adx_prof_api_utest.cpp
+    #test/devprof_drv_utest.cpp
+    #test/msprof_utest.cpp
+    #test/adprof_utest.cpp
+    ../common/test/singleton_test.cpp
+    ../common/test/queue_test.cpp
+    ../common/test/chunk_pool_test.cpp
+    ../common/test/thread_test.cpp
+    ../common/test/thread_pool_utest.cpp
+    ../common/test/ring_buffer_utest.cpp
+    ../common/test/config_manager_utest.cpp
+    ../common/test/local_socket_utest.cpp
+    ../common/test/utils_test.cpp
+    ../common/test/param_validation_utest.cpp
+    ../common/test/nano_json_test.cpp
+    ../common/test/argparse_utest.cpp
+    test/prof_acl_core_utest.cpp
     ${profilerSrcList}
 )
 
@@ -254,6 +271,11 @@ target_include_directories(msprofiler_utest PRIVATE
     ${TOP_DIR}/abl/ascend_hal/user_space/inc
     ${MSPROF_SOURCE_DIR}/dvvp/common/errno
     ${MSPROF_SOURCE_DIR}/dvvp/msprof/devprof/include
+    ${MSPROF_SOURCE_DIR}/dvvp/common/argparse
+    ${MSPROF_SOURCE_DIR}/dvvp/common/socket
+    ${MSPROF_SOURCE_DIR}/dvvp/common/thread
+    ${MSPROF_SOURCE_DIR}/dvvp/common/config/closed
+    ${TOP_DIR}/tests/ut/msprof
 )
 
 

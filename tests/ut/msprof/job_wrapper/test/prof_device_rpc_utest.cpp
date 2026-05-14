@@ -101,7 +101,7 @@ TEST_F(PROF_DEVICE_RPC_UTEST, StopProf) {
 }
 
 
-TEST_F(PROF_DEVICE_RPC_UTEST, StopProf) {
+TEST_F(PROF_DEVICE_RPC_UTEST, StopProf2) {
     GlobalMockObject::verify();
     auto jobDeviceRpc = std::make_shared<Analysis::Dvvp::JobWrapper::JobDeviceRpc>(0);\
         std::shared_ptr<analysis::dvvp::message::ProfileParams> params(new analysis::dvvp::message::ProfileParams());

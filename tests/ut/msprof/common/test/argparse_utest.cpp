@@ -12,7 +12,7 @@
 #include "mockcpp/mockcpp.hpp"
 #include "errno/error_code.h"
 #include "platform/platform.h"
-#include "config/config_manager.h"
+#include "config_manager.h"
 #define private public
 #include "argparser.h"
 

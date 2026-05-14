@@ -19,7 +19,7 @@
 #include "devdrv_runtime_api_stub.h"
 #include "errno/error_code.h"
 #include "ai_drv_dev_api.h"
-#include "config/config_manager.h"
+#include "config_manager.h"
 using namespace analysis::dvvp::common::error;
 using namespace Analysis::Dvvp::Common::Platform;
 using namespace Analysis::Dvvp::Common::Config;

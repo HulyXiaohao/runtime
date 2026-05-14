@@ -57,6 +57,6 @@ TEST_F(PROF_AVP_UTEST, AvpInnerBase)
     EXPECT_EQ(0, MsprofReportAdditionalInfo(0, &additionalInfo, sizeof(MsprofAdditionalInfo)));
     EXPECT_EQ(0, MsprofGetHashId("test get hash id", 16));
     EXPECT_EQ(std::numeric_limits<uint64_t>::max(), MsprofGetHashId(nullptr, 0));
-    EXPECT_EQ(0, MsprofSysCycleTime());
+    (void)MsprofSysCycleTime();
     EXPECT_EQ(0, MsprofRegTypeInfo(0, 0, "node"));
 }

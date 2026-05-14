@@ -12,8 +12,8 @@
 #include <fstream>
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
-#include "config/config_manager.h"
-#include "config/config.h"
+#include "config_manager.h"
+#include "config.h"
 #include "utils/utils.h"
 #include "ai_drv_dev_api.h"
 #include "ascend_hal.h"

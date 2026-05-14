@@ -164,6 +164,8 @@ set(localSrcFiles
     test/info_json_test.cpp
     test/prof_diagnostic_utest.cpp
     test/prof_biu_perf_utest.cpp
+    test/adx_prof_api_utest.cpp
+    #test/prof_device_rpc_utest.cpp
 )
 
 
@@ -236,6 +238,7 @@ target_include_directories(job_wrapper PRIVATE
     ${MSPROF_SOURCE_DIR}/dvvp/profimpl/inc
     ${MSPROF_SOURCE_DIR}/dvvp/profhal/adx/inc
     ${MSPROF_SOURCE_DIR}/dvvp/profhal/halinc
+    ${MSPROF_SOURCE_DIR}/dvvp/msprofbin/include
     ${TOP_DIR}/graphengine/inc/external
     ${TOP_DIR}/inc
     ${TOP_DIR}/inc/aicpu

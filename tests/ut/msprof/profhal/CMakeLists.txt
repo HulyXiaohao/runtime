@@ -150,6 +150,7 @@ set(src_file
 add_executable(prof_hal_utest
     test/main.cpp
     test/aicpu_plugin_utest.cpp
+    #test/hal_server_utest.cpp
     stub/mmpa_stub.cpp
     ../stub/mmpa_stub.cpp
     ../stub/prof_api_stub.cpp

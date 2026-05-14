@@ -912,14 +912,14 @@ TEST_F(INPUT_PARSER_UTEST, PreCheckSwitch310P) {
 /*
  * 函数原型	MsprofArgsType, LONG_OPTIONS[]
  * 函数功能	检测参数配置是否发生错位
- * 注意事项 谨慎修改，确保63位是invalid，并且63之前参数填充满，保证63的前后参数与input_parser.h顺序一致
+ * 注意事项 谨慎修改，确保67位是invalid，并且67之前参数填充满，保证67的前后参数与input_parser.h顺序一致
  */
-TEST_F(INPUT_PARSER_UTEST, DISABLED_PreCheckParamOffset) {
-    EXPECT_EQ(62, ARGS_SYS_LOW_POWER_FREQ);
-    EXPECT_EQ(64, ARGS_EXPORT_ITERATION_ID);
-    EXPECT_EQ(65, ARGS_EXPORT_MODEL_ID);
-    EXPECT_EQ("sys-lp-freq", LONG_OPTIONS[ARGS_SYS_LOW_POWER_FREQ].name); // 62
-    EXPECT_EQ("invalid", LONG_OPTIONS[ARGS_INVALID].name); // 63
-    EXPECT_EQ("iteration-id", LONG_OPTIONS[ARGS_EXPORT_ITERATION_ID].name); // 64
-    EXPECT_EQ("model-id", LONG_OPTIONS[ARGS_EXPORT_MODEL_ID].name); // 65
+TEST_F(INPUT_PARSER_UTEST, PreCheckParamOffset) {
+    EXPECT_EQ(67, ARGS_INVALID);
+    EXPECT_EQ(68, ARGS_EXPORT_ITERATION_ID);
+    EXPECT_EQ(69, ARGS_EXPORT_MODEL_ID);
+    EXPECT_STREQ("sys-lp-freq", LONG_OPTIONS[ARGS_SYS_LOW_POWER_FREQ].name);
+    EXPECT_STREQ("invalid", LONG_OPTIONS[ARGS_INVALID].name);
+    EXPECT_STREQ("iteration-id", LONG_OPTIONS[ARGS_EXPORT_ITERATION_ID].name);
+    EXPECT_STREQ("model-id", LONG_OPTIONS[ARGS_EXPORT_MODEL_ID].name);
 }

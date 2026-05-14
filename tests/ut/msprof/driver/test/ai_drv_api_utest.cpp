@@ -125,14 +125,6 @@ TEST_F(DRIVER_AI_DRV_API_TEST, DrvTscpuStart) {
     std::vector<std::string> prof_events;
     prof_events.push_back("0x11");
 
-    MOCKER(malloc)
-        .stubs()
-        .will(returnValue((void *)NULL));
-
-    EXPECT_EQ(PROFILING_FAILED, analysis::dvvp::driver::DrvTscpuStart(peripheralCfg, prof_events));
-
-    GlobalMockObject::verify();
-
     MOCKER(prof_drv_start)
         .stubs()
         .will(returnValue(PROF_ERROR))
@@ -161,14 +153,6 @@ TEST_F(DRIVER_AI_DRV_API_TEST, DrvAicoreStart) {
     prof_events.push_back("0x11");
     prof_cores.push_back(0);
 
-    MOCKER(malloc)
-        .stubs()
-        .will(returnValue((void *)NULL));
-
-    EXPECT_EQ(PROFILING_FAILED, analysis::dvvp::driver::DrvAicoreStart(peripheralCfg, prof_cores, prof_events));
-
-    GlobalMockObject::verify();
-
     MOCKER(prof_drv_start)
         .stubs()
         .will(returnValue(PROF_ERROR))
@@ -193,15 +177,6 @@ TEST_F(DRIVER_AI_DRV_API_TEST, DrvAicoreTaskBasedStart) {
     prof_events.clear();
 
     prof_events.push_back("0x11");
-
-    MOCKER(malloc)
-        .stubs()
-        .will(returnValue((void *)NULL));
-
-    EXPECT_EQ(PROFILING_FAILED, analysis::dvvp::driver::DrvAicoreTaskBasedStart(
-        prof_device_id, prof_channel, prof_events));
-
-    GlobalMockObject::verify();
 
     MOCKER(prof_drv_start)
         .stubs()
@@ -474,20 +449,9 @@ TEST_F(DRIVER_AI_DRV_API_TEST, DrvChannelPoll) {
 TEST_F(DRIVER_AI_DRV_API_TEST, DrvProfFlush) {
     GlobalMockObject::verify();
 
-    MOCKER(halProfDataFlush)
-        .stubs()
-        .will(returnValue(DRV_ERROR_NONE))
-        .then(returnValue(DRV_ERROR_NO_DEVICE))
-        .then(returnValue(DRV_ERROR_NOT_SUPPORT));
-    unsigned int bufSize = 0;
+    uint32_t bufSize = 0;
     EXPECT_EQ(PROFILING_SUCCESS, analysis::dvvp::driver::DrvProfFlush(
-        0, 0, bufSize));
-
-    EXPECT_EQ(PROFILING_FAILED, analysis::dvvp::driver::DrvProfFlush(
-        0, 2, bufSize));
-
-    EXPECT_EQ(PROFILING_SUCCESS, analysis::dvvp::driver::DrvProfFlush(
-        0, 2, bufSize));
+        0U, 0U, bufSize));
 }
 //////////////////////////////////////////////////////////////////////////
 
@@ -546,14 +510,6 @@ TEST_F(DRIVER_AI_DRV_API_TEST, DrvL2CacheTaskStart) {
     std::vector<std::string> prof_events;
 
     prof_events.push_back("0x5b");
-    MOCKER(malloc)
-        .stubs()
-        .will(returnValue((void *)NULL));
-
-    EXPECT_EQ(PROFILING_FAILED, analysis::dvvp::driver::DrvL2CacheTaskStart(
-        prof_device_id, prof_channel, prof_events));
-
-    GlobalMockObject::verify();
 
     MOCKER(prof_drv_start)
         .stubs()

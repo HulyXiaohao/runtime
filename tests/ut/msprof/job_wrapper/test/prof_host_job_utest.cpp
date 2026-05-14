@@ -107,7 +107,7 @@ TEST_F(JOB_WRAPPER_PROF_HOST_CPU_JOB_TEST, Process) {
     EXPECT_EQ(PROFILING_SUCCESS, profHostCpuJob->Process());
 }
 
-TEST_F(JOB_WRAPPER_PROF_HOST_CPU_JOB_TEST, DISABLED_Uninit) {
+TEST_F(JOB_WRAPPER_PROF_HOST_CPU_JOB_TEST, Uninit) {
     GlobalMockObject::verify();
     MOCKER_CPP(&Analysis::Dvvp::Common::Platform::Platform::RunSocSide)
         .stubs()

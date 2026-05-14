@@ -33,7 +33,8 @@ set(localSrcFiles
     ../stub/mmpa_stub.cpp
     ../stub/devdrv_runtime_api_stub.cpp
     ../stub/profile_drv_user_stub.cpp
-    #test/ai_drv_api_utest.cpp
+    test/ai_drv_api_utest.cpp
+    #test/data_handle_utest.cpp
 )
 
 add_executable(driver_utest

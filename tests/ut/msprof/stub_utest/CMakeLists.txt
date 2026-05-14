@@ -15,7 +15,7 @@ add_executable(stub_file_utest
     ${MSPROF_SOURCE_DIR}/dvvp/depend/wrapper/error_manager/msprof_error_manager.cpp
     test/main.cpp
     test/hdc_api_utest.cpp
-    #test/msprof_err_mgr_utest.cpp
+    test/msprof_err_mgr_utest.cpp
     test/adx_prof_api_utest.cpp
     ../stub/mmpa_stub.cpp
     ../stub/profile_drv_user_stub.cpp

@@ -76,11 +76,11 @@ protected:
     }
     virtual void TearDown()
     {
-        system("rm -rf llt/abl/msprof/ut/stub/prof_nano_test.json");
+        system("rm -rf ./prof_nano_test.json");
     }
     void JsonGenerate(std::string str)
     {
-        std::ofstream jsonFile("llt/abl/msprof/ut/stub/prof_nano_test.json");
+        std::ofstream jsonFile("./prof_nano_test.json");
         if (jsonFile.is_open()) {
             jsonFile << str;
         }
@@ -91,7 +91,7 @@ protected:
 TEST_F(JSON_PARSER_JSON_NANO_UTEST, JsonParserInitWithEmptyJson) {
     std::string str = "{}";
     JsonGenerate(str); 
-    JsonParser::instance()->Init("llt/abl/msprof/ut/stub/prof_nano_test.json");
+    JsonParser::instance()->Init("./prof_nano_test.json");
     EXPECT_EQ(0, JsonParser::instance()->channelParams_.size());
     EXPECT_EQ(0, JsonParser::instance()->moduleParams_.size());
     EXPECT_EQ(0, JsonParser::instance()->reporterParams_.size());
@@ -116,12 +116,12 @@ const std::string JsonParserCannStr = "{\n\
         \"reporters\": [\n\
             {\n\
                 \"reporter\": \"API_EVENT\",\n\
-                \"reporter_switch\": \"on\"\n\
+                \"reporter_switch\": \"on\",\n\
                 \"report_buffer_len\": 16384\n\
             },\n\
             {\n\
                 \"reporter\": \"COMPACT\",\n\
-                \"report_buffer_len\": 50000\n\
+                \"report_buffer_len\": 50000,\n\
                 \"reporter_switch\": \"off\"\n\
             },\n\
             {\n\
@@ -135,10 +135,10 @@ const std::string JsonParserCannStr = "{\n\
         ]\n\
     }\n}";
 
-TEST_F(JSON_PARSER_JSON_NANO_UTEST, DISABLED_JsonParserInitWithCann)
+TEST_F(JSON_PARSER_JSON_NANO_UTEST, JsonParserInitWithCann)
 {
     JsonGenerate(JsonParserCannStr); 
-    JsonParser::instance()->Init("llt/abl/msprof/ut/stub/prof_nano_test.json");
+    JsonParser::instance()->Init("./prof_nano_test.json");
     EXPECT_EQ(0, JsonParser::instance()->channelParams_.size());
     EXPECT_EQ(3, JsonParser::instance()->moduleParams_.size());
     EXPECT_EQ(3, JsonParser::instance()->reporterParams_.size());
@@ -194,10 +194,10 @@ const std::string JsonParserDeviceStr = "{\n\
         ]\n\
     }\n}";
 
-TEST_F(JSON_PARSER_JSON_NANO_UTEST, DISABLED_JsonParserInitWithDevice)
+TEST_F(JSON_PARSER_JSON_NANO_UTEST, JsonParserInitWithDevice)
 {
     JsonGenerate(JsonParserDeviceStr); 
-    JsonParser::instance()->Init("llt/abl/msprof/ut/stub/prof_nano_test.json");
+    JsonParser::instance()->Init("./prof_nano_test.json");
     EXPECT_EQ(3, JsonParser::instance()->channelParams_.size());
     EXPECT_EQ(0, JsonParser::instance()->moduleParams_.size());
     EXPECT_EQ(0, JsonParser::instance()->reporterParams_.size());

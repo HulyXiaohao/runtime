@@ -1323,7 +1323,7 @@ TEST_F(JOB_WRAPPER_PROF_CTRLCPU_JOB_TEST, GetCollectCtrlCpuEventCmd) {
     rmdir(collectionJobCfg_->comParams->tmpResultDir.c_str());
 }
 
-TEST_F(JOB_WRAPPER_PROF_CTRLCPU_JOB_TEST, DISABLED_PrepareDataDir) {
+TEST_F(JOB_WRAPPER_PROF_CTRLCPU_JOB_TEST, PrepareDataDir) {
     GlobalMockObject::verify();
     MOCKER_CPP(&Analysis::Dvvp::Common::Platform::Platform::RunSocSide)
         .stubs()
@@ -1333,6 +1333,9 @@ TEST_F(JOB_WRAPPER_PROF_CTRLCPU_JOB_TEST, DISABLED_PrepareDataDir) {
         .stubs()
         .will(returnValue(PROFILING_FAILED))
         .then(returnValue(PROFILING_SUCCESS));
+    MOCKER(analysis::dvvp::common::utils::Utils::JoinPath)
+        .stubs()
+        .will(returnValue(std::string("/no_such_dir_for_utest/ai_ctrl_cpu.data")));
     auto profCtrlCpuBasedJob = std::make_shared<Analysis::Dvvp::JobWrapper::ProfCtrlcpuJob>();
     profCtrlCpuBasedJob->collectionJobCfg_ = collectionJobCfg_;
     std::string dir;

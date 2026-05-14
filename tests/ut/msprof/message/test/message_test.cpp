@@ -160,7 +160,7 @@ protected:
 };
 
 
-TEST_F(MESSAGE_MESSAGE_PROFILEPARAMS_TEST, DISABLED_FromObject) {
+TEST_F(MESSAGE_MESSAGE_PROFILEPARAMS_TEST, FromObject) {
     GlobalMockObject::verify();
 
     ProfileParams params;

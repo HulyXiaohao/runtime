@@ -40,9 +40,7 @@ TEST_F(ADX_PROF_API_UTEST, AdxIdeCreatePacket) {
 
 TEST_F(ADX_PROF_API_UTEST, AdxIdeFreePacket) {
     GlobalMockObject::verify();
-    MOCKER(free)
-        .stubs();
-    IdeBuffT outPut = (IdeBuffT)0x12345678;
+    IdeBuffT outPut = (IdeBuffT)malloc(16);
     AdxIdeFreePacket(outPut);
     EXPECT_EQ(outPut, nullptr);
 }
