@@ -341,6 +341,11 @@ int32_t ProfNotifySetDevice(uint32_t chipId, uint32_t devId, bool isOpenDevice)
     if (Utils::IsDynProfMode()) {
         DynProfMgr::instance()->SaveDevicesInfo(chipId, devId, isOpenDevice);
     } else {
+        if (isOpenDevice && ProfAclMgr::instance()->IsSigintShutdownInProgress()) {
+            MSPROF_LOGW("Skip command-line profiling re-init/start on device %u because SIGINT shutdown is in progress.",
+                        devId);
+            return MSPROF_ERROR_NONE;
+        }
         if (isOpenDevice && ProfInitIfCommandLine() != PROFILING_SUCCESS) {
             return MSPROF_ERROR;
         }

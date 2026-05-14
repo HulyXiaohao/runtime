@@ -186,6 +186,7 @@ public:
     bool IsCmdMode() const;
     bool IsAclApiMode() const;
     bool IsAclApiReady() const;
+    bool IsSigintShutdownInProgress() const;
     bool IsSubscribeMode() const;
     bool IsModeOff() const;
     bool IsPureCpuMode();

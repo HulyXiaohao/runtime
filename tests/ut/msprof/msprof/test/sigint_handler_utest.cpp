@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <mockcpp/mockcpp.hpp>
 #include "prof_acl_mgr.h"
+#include "msprofiler_impl.h"
 
 using namespace Msprofiler::Api;
 using ProfSignalHandler = void (*)(int);
@@ -113,6 +114,27 @@ TEST_F(SigintHandlerUtest, SigintWatcherThreadExitsOnUnregister)
     mgr->UnInit();
 
     SUCCEED();
+    signal(SIGINT, SIG_DFL);
+}
+
+TEST_F(SigintHandlerUtest, ProfNotifySetDeviceSkipsCmdlineRestartWhenSigintShuttingDown)
+{
+    signal(SIGINT, CustomerSigHandler);
+    MOCKER_CPP(&ProfAclMgr::MsprofFinalizeHandle)
+        .stubs()
+        .will(returnValue(0));
+    MOCKER_CPP(&Analysis::Dvvp::ProfilerCommon::ProfInitIfCommandLine)
+        .expects(never());
+
+    auto *mgr = ProfAclMgr::instance();
+    mgr->isReady_ = true;
+    mgr->Init();
+
+    raise(SIGINT);
+    EXPECT_TRUE(mgr->IsSigintShutdownInProgress());
+    EXPECT_EQ(MSPROF_ERROR_NONE, Analysis::Dvvp::ProfilerCommon::ProfNotifySetDevice(0, 0, true));
+
+    mgr->UnInit();
     signal(SIGINT, SIG_DFL);
 }
 

@@ -289,6 +289,11 @@ static std::atomic<bool>     g_sigWatcherQuit{false};  // 改为 atomic 以符�
 static std::unique_ptr<std::thread> g_sigWatcherThread;
 static struct sigaction oldSigAction;
 
+bool ProfAclMgr::IsSigintShutdownInProgress() const
+{
+    return g_sigintReceived != 0;
+}
+
 // forward declaration: SigintWatcherThread references newSigHandler by address
 static void newSigHandler(int signum);
 
