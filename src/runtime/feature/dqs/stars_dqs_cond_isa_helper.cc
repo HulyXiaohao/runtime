@@ -818,7 +818,6 @@ void ConstructDqsPrepareFc(RtStarsDqsPrepareOutFc &fc, const RtStarsDqsPrepareFc
     ConstructOpImmAndi(r5, r5, 1U, RT_STARS_COND_ISA_OP_IMM_FUNC3_ADDI, fc.addiCnt);
     ConstructStore(r9, r5, 0U, RT_STARS_COND_ISA_STORE_FUNC3_SB, fc.incCnt1);
 
-
     /* 计算output_private_info_addr[i]，存入r4 */
     ConstructLLWI(r5, fcPara.csPtrOutputHeadPoolBlockSize, fc.llwi15);
     ConstructLHWI(r5, fcPara.csPtrOutputHeadPoolBlockSize, fc.lhwi15);

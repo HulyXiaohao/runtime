@@ -1653,7 +1653,8 @@ rtError_t NpuDriver::GetStreamPriorityValue(Stream * const stm, uint32_t * const
     uint32_t sqId = stm->GetSqId();
     streamPriorityIn.u.update_and_query_stream_priority.sqId = sqId;
     streamPriorityIn.u.update_and_query_stream_priority.tsId = tsId;
-    for (int i = 0; i < 4; i++) {
+    const size_t resv_count = sizeof(streamPriorityIn.u.update_and_query_stream_priority.resv) / sizeof(streamPriorityIn.u.update_and_query_stream_priority.resv[0]);
+    for (int i = 0; i < resv_count; i++) {
         streamPriorityIn.u.update_and_query_stream_priority.resv[i] = 0;
     }
     uint32_t deviceId = stm->Device_()->Id_();
