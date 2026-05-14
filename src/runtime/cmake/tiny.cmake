@@ -357,11 +357,13 @@ set(libruntime_v100_src_files
     ${RUNTIME_CORE_DIR}/src/kernel/program.cc
     ${RUNTIME_CORE_DIR}/src/kernel/program_common.cc
     ${RUNTIME_CORE_DIR}/src/kernel/kernel_utils.cc
+    ${RUNTIME_CORE_DIR}/src/launch/memory_common.cc
     ${RUNTIME_CORE_DIR}/src/launch/memcpy_stars.cc
     ${RUNTIME_CORE_DIR}/src/kernel/v100/program_plat.cc
     ${RUNTIME_CORE_DIR}/src/launch/cmo_barrier_common.cc
     ${RUNTIME_CORE_DIR}/src/launch/cmo_barrier_stars.cc
     ${RUNTIME_CORE_DIR}/src/launch/memcpy_stars.cc
+    ${RUNTIME_CORE_DIR}/src/launch/memory_stars.cc
     ${RUNTIME_CORE_DIR}/src/launch/label.cc
     ${RUNTIME_CORE_DIR}/src/launch/cond_stars.cc
     ${RUNTIME_CORE_DIR}/src/launch/label_common.cc

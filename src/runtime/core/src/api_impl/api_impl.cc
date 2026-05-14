@@ -55,6 +55,7 @@
 #include "capture_adapt.hpp"
 #include "stars_engine.hpp"
 #include "memcpy_c.hpp"
+#include "memory_c.hpp"
 #include "binary_loader.hpp"
 #include "args_handle_allocator.hpp"
 #include "para_convertor.hpp"
@@ -2893,7 +2894,7 @@ rtError_t ApiImpl::ReduceAsync(void * const dst, const void * const src, const u
     COND_RETURN_AND_MSG_INVALID_CONTEXT(curStm->Context_() != curCtx, RT_ERROR_STREAM_CONTEXT, 
         "stream " + std::to_string(curStm->Id_()));
 
-    return curCtx->ReduceAsync(dst, src, cnt, kind, type, curStm, cfgInfo);
+    return cce::runtime::ReduceAsync(dst, src, cnt, kind, type, curStm, cfgInfo);
 }
 
 rtError_t ApiImpl::ReduceAsyncV2(void * const dst, const void * const src, const uint64_t cnt,
@@ -2916,12 +2917,12 @@ rtError_t ApiImpl::ReduceAsyncV2(void * const dst, const void * const src, const
     const auto reduceOverflowProp = dev->GetDevProperties().reduceOverflow;
     if ((reduceOverflowProp == ReduceOverflowType::REDUCE_OVERFLOW_TS_VERSION_REDUCE_V2_ID) && 
         (tsVersion >= static_cast<uint32_t>(TS_VERSION_REDUCE_V2_ID))) {
-        return curCtx->ReduceAsyncV2(dst, src, cnt, kind, type, curStm, overflowAddr);
+        return cce::runtime::ReduceAsyncV2(dst, src, cnt, kind, type, curStm, overflowAddr);
     } else if ((reduceOverflowProp == ReduceOverflowType::REDUCE_OVERFLOW_TS_VERSION_REDUCV2_SUPPORT_DC) && 
         (tsVersion >= static_cast<uint32_t>(TS_VERSION_REDUCV2_SUPPORT_DC))) {
-        return curCtx->ReduceAsyncV2(dst, src, cnt, kind, type, curStm, overflowAddr);
+        return cce::runtime::ReduceAsyncV2(dst, src, cnt, kind, type, curStm, overflowAddr);
     } else {
-        return curCtx->ReduceAsync(dst, src, cnt, kind, type, curStm, nullptr);
+        return cce::runtime::ReduceAsync(dst, src, cnt, kind, type, curStm, nullptr);
     }
 }
 
@@ -8577,7 +8578,7 @@ rtError_t ApiImpl::MemWriteValue(const void * const devAddr, const uint64_t valu
     COND_RETURN_AND_MSG_INVALID_CONTEXT(curStm->Context_() != curCtx, RT_ERROR_STREAM_CONTEXT, 
         "stream " + std::to_string(curStm->Id_()));
 
-    return curCtx->MemWriteValue(devAddr, value, flag, curStm);
+    return cce::runtime::MemWriteValue(devAddr, value, flag, curStm);
 }
 
 rtError_t ApiImpl::MemWaitValue(const void * const devAddr, const uint64_t value, const uint32_t flag, Stream * const stm)
@@ -8594,7 +8595,7 @@ rtError_t ApiImpl::MemWaitValue(const void * const devAddr, const uint64_t value
     COND_RETURN_AND_MSG_INVALID_CONTEXT(curStm->Context_() != curCtx, RT_ERROR_STREAM_CONTEXT, 
         "stream " + std::to_string(curStm->Id_()));
 
-    return curCtx->MemWaitValue(devAddr, value, flag, curStm);
+    return cce::runtime::MemWaitValue(devAddr, value, flag, curStm);
 }
 
 rtError_t ApiImpl::ModelGetName(Model * const mdl, const uint32_t maxLen, char_t * const mdlName)

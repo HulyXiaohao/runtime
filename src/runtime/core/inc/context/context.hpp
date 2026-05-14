@@ -137,12 +137,6 @@ public:
         void ** const argsHandle) const;
     rtError_t LaunchSqeUpdateTask(const void * const src, const uint64_t cpySize, uint32_t sqId, uint32_t pos,
                                   Stream * const stm);
-    rtError_t ReduceAsync(void * const dst, const void * const src, const uint64_t cpySize, const rtRecudeKind_t kind,
-        const rtDataType_t type, Stream * const stm, const rtTaskCfgInfo_t * const cfgInfo = nullptr);
-
-    rtError_t ReduceAsyncV2(void * const dst, const void * const src, const uint64_t cpySize, const rtRecudeKind_t kind,
-        const rtDataType_t type, Stream * const stm, void * const overflowAddr);
-
     rtError_t MemsetAsync(void * const ptr, const uint64_t destMax, const uint32_t fillVal, const uint64_t fillCount,
                           Stream * const stm);
 
@@ -419,6 +413,10 @@ public:
     {
         return overflowAddr_;
     }
+    uint64_t CtxGetOverflowAddrOffset() const
+    {
+        return overflowAddrOffset_;
+    }
 
     void SetFailureError(const rtError_t error)
     {
@@ -536,8 +534,6 @@ public:
     rtError_t UpdateNormalKernelTaskH2DSubmitComm(TaskInfo * const updateTask, Stream * const stm, void * const targetAddrOfUpdatedSqe, void * const updateArgHandle) const;
     rtError_t UpdateNormalKernelTaskForSoftwareSq(TaskInfo * const updateTask, Stream * const stm, void * const updateArgHandle) const;
     rtError_t UpdateEndGraphTask(Stream * const origCaptureStream, Stream * const exeStream, Notify *ntf) const;
-    rtError_t MemWriteValue(const void * const devAddr, const uint64_t value, const uint32_t flag, Stream * const stm) const;
-    rtError_t MemWaitValue(const void * const devAddr, const uint64_t value, const uint32_t flag, Stream * const stm) const;
     rtError_t SendAndRecvDebugTask(RtDebugSendInfo * const sendInfo, rtDebugReportInfo_t * const reportInfo) const;
     uint64_t GetCallBackThreadId() const
     {

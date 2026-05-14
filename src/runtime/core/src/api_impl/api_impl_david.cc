@@ -22,6 +22,7 @@
 #include "event_c.hpp"
 #include "ipc_event.hpp"
 #include "memcpy_c.hpp"
+#include "memory_c.hpp"
 #include "notify_c.hpp"
 #include "count_notify.hpp"
 #include "event_david.hpp"
@@ -902,7 +903,7 @@ rtError_t ApiImplDavid::ReduceAsync(void * const dst, const void * const src, co
     }
     COND_RETURN_AND_MSG_OUTER(curStm->Context_() != curCtx, RT_ERROR_STREAM_CONTEXT,
         ErrorCode::EE1010, __func__, "stream");
-    return MemcpyReduceAsync(dst, src, cnt, kind, type, curStm, cfgInfo);
+    return cce::runtime::ReduceAsync(dst, src, cnt, kind, type, curStm, cfgInfo);
 }
 
 rtError_t ApiImplDavid::ModelExit(Model * const mdl, Stream * const stm)
@@ -2150,8 +2151,6 @@ rtError_t ApiImplDavid::LaunchHostFunc(Stream * const stm, const rtCallback_t ca
 
 rtError_t ApiImplDavid::MemWriteValue(const void * const devAddr, const uint64_t value, const uint32_t flag, Stream * const stm)
 {
-    UNUSED(flag);
-
     Context * const curCtx = CurrentContext();
     CHECK_CONTEXT_VALID_WITH_RETURN(curCtx, RT_ERROR_CONTEXT_NULL);
 
@@ -2164,12 +2163,7 @@ rtError_t ApiImplDavid::MemWriteValue(const void * const devAddr, const uint64_t
     COND_RETURN_AND_MSG_OUTER(curStm->Context_() != curCtx, RT_ERROR_STREAM_CONTEXT,
         ErrorCode::EE1010, __func__, "stream");
 
-    rtWriteValueInfo_t info;
-    info.addr = RtPtrToValue(devAddr);
-    uint64_t writeValue = value;
-    info.value = RtPtrToPtr<uint8_t*>(&writeValue);
-    info.size = WRITE_VALUE_SIZE_TYPE_64BIT;
-    return StreamWriteValue(&info, curStm);
+    return cce::runtime::MemWriteValue(devAddr, value, flag, curStm);
 }
 
 rtError_t ApiImplDavid::MemWaitValue(const void * const devAddr, const uint64_t value, const uint32_t flag, Stream * const stm)
@@ -2186,7 +2180,7 @@ rtError_t ApiImplDavid::MemWaitValue(const void * const devAddr, const uint64_t 
     COND_RETURN_AND_MSG_OUTER(curStm->Context_() != curCtx, RT_ERROR_STREAM_CONTEXT,
         ErrorCode::EE1010, __func__, "stream");
 
-    return CondMemWaitValue(devAddr, value, flag, curStm);
+    return cce::runtime::MemWaitValue(devAddr, value, flag, curStm);
 }
 
 }  // namespace runtime

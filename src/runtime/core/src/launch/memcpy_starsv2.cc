@@ -20,8 +20,6 @@
 
 namespace cce {
 namespace runtime {
-TIMESTAMP_EXTERN(rtReduceAsync_part1);
-TIMESTAMP_EXTERN(rtReduceAsync_part2);
 
 rtError_t MemcpyAsyncPtrForDavid(rtDavidMemcpyAddrInfo *const memcpyAddrInfo, const uint64_t count, Stream *stm,
     const rtTaskCfgInfo_t * const cfgInfo)
@@ -241,70 +239,6 @@ rtError_t MemcopyAsync(void * const dst, const uint64_t destMax, const void * co
     ERROR_RETURN_MSG_INNER(error, "recycle fail, stream_id=%d, retCode=%#x.",
         stm->Id_(), static_cast<uint32_t>(error));
     return error;
-}
-
-rtError_t MemcpyReduceAsync(void * const dst, const void * const src, const uint64_t cpySize,
-    const rtRecudeKind_t kind, const rtDataType_t type, Stream * const stm,
-    const rtTaskCfgInfo_t * const cfgInfo)
-{
-    const int32_t streamId = stm->Id_();
-    rtError_t error = CheckTaskCanSend(stm);
-    ERROR_RETURN_MSG_INNER(error, "stream_id=%d check failed, retCode=%#x.",
-        streamId, static_cast<uint32_t>(error));
-    if (stm->Device_()->Driver_() != nullptr) {
-        rtDevCapabilityInfo capabilityInfo = {};
-        error = stm->Device_()->GetDeviceCapabilities(capabilityInfo);
-        ERROR_RETURN_MSG_INNER(error, "Get chip capability failed, device_id=%u, retCode=%#x.",
-            stm->Device_()->Id_(), static_cast<uint32_t>(error));
-        const uint32_t sdmaReduceKind = capabilityInfo.sdma_reduce_kind;
-        RT_LOG(RT_LOG_INFO, "ReduceAsync sdma_reduce_kind=0x%x.", sdmaReduceKind);
-        const uint32_t shift = static_cast<uint32_t>(kind) - static_cast<uint32_t>(RT_MEMCPY_SDMA_AUTOMATIC_ADD);
-        COND_RETURN_AND_MSG_OUTER((((sdmaReduceKind >> shift) & 0x1U) == 0U), RT_ERROR_FEATURE_NOT_SUPPORT, 
-            ErrorCode::EE1006, __func__, "kind=" + std::to_string(kind));
-
-        const uint32_t sdmaReduceSupport = capabilityInfo.sdma_reduce_support;
-        const uint32_t offset = static_cast<uint32_t>(type);
-        RT_LOG(RT_LOG_INFO, "ReduceAsync sdma_reduce_support=0x%x.", sdmaReduceSupport);
-        if (((sdmaReduceSupport >> offset) & 0x1U) == 0U) { // 1:bit 0
-            RT_LOG_OUTER_MSG_WITH_FUNC(ErrorCode::EE1006, "type=" + std::to_string(type));
-            return RT_ERROR_FEATURE_NOT_SUPPORT;
-        }
-    }
-
-    error = stm->Context_()->CheckMemAlign(src, type);
-    ERROR_RETURN_MSG_INNER(error,"invoke src CheckMemAlign error code:%#x", static_cast<uint32_t>(error));
-    error = stm->Context_()->CheckMemAlign(dst, type);
-    ERROR_RETURN_MSG_INNER(error, "invoke dst CheckMemAlign error code:%#x", static_cast<uint32_t>(error));
-    TIMESTAMP_BEGIN(rtReduceAsync_part2);
-    uint32_t pos = 0xFFFFU;
-    Stream *dstStm = stm;
-    TaskInfo *rtMemcpyAsyncTask = nullptr;
-    std::function<void()> const errRecycle = [&rtMemcpyAsyncTask, &stm, &pos, &dstStm]() {
-        TaskUnInitProc(rtMemcpyAsyncTask);
-        TaskRollBack(dstStm, pos);
-        stm->StreamUnLock();
-    };
-    stm->StreamLock();
-    error = AllocTaskInfoForCapture(&rtMemcpyAsyncTask, stm, pos, dstStm);
-    ERROR_PROC_RETURN_MSG_INNER(error, stm->StreamUnLock();,
-        "stream_id=%d alloc ccuLaunch task failed, retCode=%#x.", streamId, static_cast<uint32_t>(error));
-    SaveTaskCommonInfo(rtMemcpyAsyncTask, dstStm, pos);
-    ScopeGuard tskErrRecycle(errRecycle);
-    error = MemcpyAsyncTaskInitV3(rtMemcpyAsyncTask, kind, src, dst, cpySize, cfgInfo, nullptr);
-    ERROR_RETURN_MSG_INNER(error, "stream_id=%d MemcpyAsyncTask init error code:%#x", streamId,
-        static_cast<uint32_t>(error));
-    rtMemcpyAsyncTask->u.memcpyAsyncTaskInfo.copyDataType = static_cast<uint8_t>(type);
-    rtMemcpyAsyncTask->stmArgPos = static_cast<DavidStream *>(dstStm)->GetArgPos();
-    error = DavidSendTask(rtMemcpyAsyncTask, dstStm);
-    ERROR_RETURN_MSG_INNER(error, "stream_id=%d MemcpyAsyncTask submit error code:%#x",
-        streamId, static_cast<uint32_t>(error));
-    tskErrRecycle.ReleaseGuard();
-    stm->StreamUnLock();
-    SET_THREAD_TASKID_AND_STREAMID(dstStm->GetExposedStreamId(), rtMemcpyAsyncTask->taskSn);
-    error = SubmitTaskPostProc(dstStm, pos);
-    ERROR_RETURN_MSG_INNER(error, "recycle fail, stream_id=%d, retCode=%#x.",
-        streamId, static_cast<uint32_t>(error));
-    return RT_ERROR_NONE;
 }
 
 static rtError_t DevMemSetAsync(Stream * const stm, void * const ptr, const uint64_t destMax,

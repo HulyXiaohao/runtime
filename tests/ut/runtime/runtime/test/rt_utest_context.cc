@@ -56,6 +56,7 @@
 #include "ffts_task.h"
 #include "debug_task.h"
 #include "memcpy_c.hpp"
+#include "memory_c.hpp"
 #include "barrier_task.h"
 #include "stream_task.h"
 #include "data/elf.h"
@@ -2598,12 +2599,12 @@ TEST_F(ContextTest, ReduceAsync_error_01)
     MOCKER_CPP_VIRTUAL(*stream, &Stream::Setup)
         .stubs()
         .will(invoke(utest_ctx_stream_setup_sub));
-    error = ctx->ReduceAsync(devMem,
+    error = ReduceAsync(devMem,
                           devMemSrc,
                           buff_size,
                           RT_MEMCPY_SDMA_AUTOMATIC_ADD,
                           RT_DATA_TYPE_FP32,
-                          stream, false);
+                          stream, nullptr);
     EXPECT_NE(error, RT_ERROR_NONE);
 
 
@@ -2647,12 +2648,12 @@ TEST_F(ContextTest, ReduceAsync_error_02)
     error = rtMalloc((void **)&devMem, buff_size, RT_MEMORY_HBM, DEFAULT_MODULEID);
     EXPECT_EQ(error, RT_ERROR_NONE);
 
-    error = ctx->ReduceAsync(devMem,
+    error = ReduceAsync(devMem,
                           devMemSrc,
                           buff_size,
                           RT_MEMCPY_SDMA_AUTOMATIC_ADD,
                           RT_DATA_TYPE_FP32,
-                          (Stream *)ctx->DefaultStream_(), false);
+                          (Stream *)ctx->DefaultStream_(), nullptr);
     EXPECT_NE(error, RT_ERROR_NONE);
 
     error = rtFree(devMem);
@@ -3564,16 +3565,16 @@ TEST_F(ContextTest, ReduceAsyncV2_test)
         .will(returnValue(1))
         .then(returnValue(RT_ERROR_NONE));
     stream->streamId_ = MAX_INT32_NUM;
-    error = ctx->ReduceAsyncV2(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
+    error = ReduceAsyncV2(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
     EXPECT_EQ(error, 1);
 
-    error = ctx->ReduceAsyncV2(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
+    error = ReduceAsyncV2(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
     EXPECT_EQ(error, RT_ERROR_NONE);
 
     MOCKER_CPP_VIRTUAL(ctx->device_, &Device::GetDeviceCapabilities)
         .stubs()
         .will(returnValue(RT_ERROR_NONE));
-    error = ctx->ReduceAsyncV2(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
+    error = ReduceAsyncV2(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
     EXPECT_EQ(error, RT_ERROR_FEATURE_NOT_SUPPORT);
 
     (void)((Runtime *)Runtime::Instance())->PrimaryContextRelease(devId);
@@ -3612,16 +3613,16 @@ TEST_F(ContextTest, ReduceAsync_test)
         .will(returnValue(1))
         .then(returnValue(RT_ERROR_NONE));
     stream->streamId_ = MAX_INT32_NUM;
-    error = ctx->ReduceAsync(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
+    error = ReduceAsync(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
     EXPECT_EQ(error, 1);
 
-    error = ctx->ReduceAsync(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
+    error = ReduceAsync(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
     EXPECT_EQ(error, 1);
 
     MOCKER_CPP_VIRTUAL(ctx->device_, &Device::GetDeviceCapabilities)
         .stubs()
         .will(returnValue(RT_ERROR_NONE));
-    error = ctx->ReduceAsync(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
+    error = ReduceAsync(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_ADD, RT_DATA_TYPE_FP32, stream, nullptr);
     EXPECT_EQ(error, RT_ERROR_FEATURE_NOT_SUPPORT);
 
     (void)((Runtime *)Runtime::Instance())->PrimaryContextRelease(devId);

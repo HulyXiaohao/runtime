@@ -38,6 +38,8 @@
 #include "async_hwts_engine.hpp"
 #include "runtime_keeper.h"
 #include "memory_task.h"
+#include "memcpy_c.hpp"
+#include "memory_c.hpp"
 #undef protected
 #undef private
 #include "ffts_task.h"
@@ -148,7 +150,7 @@ TEST_F(ChipContextTest, ReduceAsync_test)
     rtChipType_t chipType = rtInstance->GetChipType();
     rtInstance->SetChipType(CHIP_DC);
     GlobalContainer::SetRtChipType(CHIP_DC);
-    error = ctx->ReduceAsync(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_MAX, RT_DATA_TYPE_FP32, stream, nullptr);
+    error = ReduceAsync(nullptr, nullptr, 0, RT_MEMCPY_SDMA_AUTOMATIC_MAX, RT_DATA_TYPE_FP32, stream, nullptr);
     EXPECT_EQ(error, RT_ERROR_FEATURE_NOT_SUPPORT);
     rtInstance->SetChipType(chipType);
     GlobalContainer::SetRtChipType(chipType);

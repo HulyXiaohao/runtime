@@ -68,7 +68,9 @@ set(libruntime_cmodel_v100_task_src_files
     ${RUNTIME_CORE_DIR}/src/task/v100/task_proc_func_register.cc
     ${RUNTIME_CORE_DIR}/src/task/v100/task_checker.cc
     ${RUNTIME_CORE_DIR}/src/task/v100/memory_corruption_checker.cc
+    ${RUNTIME_CORE_DIR}/src/launch/memory_common.cc
     ${RUNTIME_CORE_DIR}/src/launch/memcpy_stars.cc
+    ${RUNTIME_CORE_DIR}/src/launch/memory_stars.cc
     ${RUNTIME_CORE_DIR}/src/launch/dvpp_stars.cc
 )
 
@@ -556,7 +558,9 @@ set(libruntime_cmodel_v200_src_files
     ${RUNTIME_CORE_DIR}/src/device/v200_base/device_error_proc_c.cc
     ${RUNTIME_FEATURE_DIR}/ccu/ccu_device_error_proc.cc
     ${RUNTIME_CORE_DIR}/src/event/event_c.cc
+    ${RUNTIME_CORE_DIR}/src/launch/memory_common.cc
     ${RUNTIME_CORE_DIR}/src/launch/memcpy_starsv2.cc
+    ${RUNTIME_CORE_DIR}/src/launch/memory_starsv2.cc
     ${RUNTIME_FEATURE_DIR}/model/model_c.cc
     ${RUNTIME_CORE_DIR}/src/notify/notify_c.cc
     ${RUNTIME_CORE_DIR}/src/profiler/profiler_c.cc

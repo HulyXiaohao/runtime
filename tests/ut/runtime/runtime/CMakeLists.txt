@@ -194,7 +194,9 @@ set(runtimeut_src_david_series_common_c_list
     ${TOP_DIR}/src/runtime/feature/ccu/ccu_stream.cc
     ${TOP_DIR}/src/runtime/core/src/dfx/coredump_c.cc
     ${TOP_DIR}/src/runtime/core/src/dfx/fast_recover.cc
+    ${TOP_DIR}/src/runtime/core/src/launch/memory_common.cc
     ${TOP_DIR}/src/runtime/core/src/launch/memcpy_starsv2.cc
+    ${TOP_DIR}/src/runtime/core/src/launch/memory_starsv2.cc
     ${TOP_DIR}/src/runtime/core/src/device/v200_base/device_error_proc_c.cc
     ${TOP_DIR}/src/runtime/feature/ccu/ccu_device_error_proc.cc
     ${TOP_DIR}/src/runtime/core/src/launch/cond_starsv2.cc
@@ -507,7 +509,9 @@ set(runtimeut_src_list
     ${TOP_DIR}/src/runtime/core/src/launch/cond_stars.cc
     ${TOP_DIR}/src/runtime/core/src/launch/label_common.cc
     ${TOP_DIR}/src/runtime/core/src/launch/label_stars.cc
+    ${TOP_DIR}/src/runtime/core/src/launch/memory_common.cc
     ${TOP_DIR}/src/runtime/core/src/launch/memcpy_stars.cc
+    ${TOP_DIR}/src/runtime/core/src/launch/memory_stars.cc
     ${TOP_DIR}/src/runtime/core/src/launch/aicpu_stars.cc
     ${TOP_DIR}/src/runtime/core/src/launch/dvpp_stars.cc
     ${TOP_DIR}/src/runtime/core/src/device/aicpu_err_msg.cc

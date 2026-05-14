@@ -23,6 +23,20 @@ rtError_t IpcOpenNotifyStub(cce::runtime::ApiImpl *api, Notify **const retNotify
     *retNotify = g_ipcOpenNotifyRet;
     return RT_ERROR_NONE;
 }
+
+void EnableValueWaitFeatureForTest()
+{
+    Runtime * const rtInstance = Runtime::Instance();
+    GlobalContainer::SetRtChipType(CHIP_910_B_93);
+    rtInstance->SetChipType(CHIP_910_B_93);
+    rtInstance->UpdateDevProperties(CHIP_910_B_93, "Ascend910B1");
+}
+
+void MockMemValueSubmitSuccess(Stream * const stream)
+{
+    Device * const device = stream->Device_();
+    MOCKER_CPP_VIRTUAL(device, &Device::SubmitTask).stubs().will(returnValue(RT_ERROR_NONE));
+}
 }  // namespace
 
 class CloudV2ApiTest : public testing::Test
@@ -75,6 +89,7 @@ protected:
         GlobalMockObject::verify();
         rtDeviceReset(0);
         (void)rtSetSocVersion("");
+        GlobalContainer::SetRtChipType(CHIP_END);
         ((Runtime *)Runtime::Instance())->SetIsUserSetSocVersion(false);
     }
 
@@ -775,8 +790,9 @@ TEST_F(CloudV2ApiTest, mem_wait_record_task_01)
                     .with(outBoundP(&rtAttributes, sizeof(rtAttributes)), mockcpp::any())
                     .will(returnValue(RT_ERROR_NONE));
 
-    Engine *engine = new AsyncHwtsEngine(nullptr);
-    MOCKER_CPP_VIRTUAL(engine, &Engine::SubmitTaskNormal).stubs().will(returnValue(RT_ERROR_INVALID_VALUE));
+    EnableValueWaitFeatureForTest();
+    MockMemValueSubmitSuccess(rt_ut::UnwrapOrNull<Stream>(stream_));
+    MockMemValueSubmitSuccess(rt_ut::UnwrapOrNull<Stream>(stream));
 
     error = rtsValueWrite(devPtr, 0, 0, stream_);
     EXPECT_EQ(error, RT_ERROR_NONE);
@@ -792,7 +808,6 @@ TEST_F(CloudV2ApiTest, mem_wait_record_task_01)
     error = rtFree(devPtr);
     EXPECT_EQ(error, RT_ERROR_NONE);
 
-    delete engine;
     delete rawDrv;
 }
 
@@ -828,8 +843,9 @@ TEST_F(CloudV2ApiTest, mem_wait_record_task_03)
                     .with(outBoundP(&rtAttributes, sizeof(rtAttributes)), mockcpp::any())
                     .will(returnValue(RT_ERROR_NONE));
 
-    Engine *engine = new AsyncHwtsEngine(nullptr);
-    MOCKER_CPP_VIRTUAL(engine, &Engine::SubmitTaskNormal).stubs().will(returnValue(RT_ERROR_INVALID_VALUE));
+    EnableValueWaitFeatureForTest();
+    MockMemValueSubmitSuccess(rt_ut::UnwrapOrNull<Stream>(stream_));
+    MockMemValueSubmitSuccess(rt_ut::UnwrapOrNull<Stream>(stream));
 
     context = (Context *)ctx;
 
@@ -847,7 +863,6 @@ TEST_F(CloudV2ApiTest, mem_wait_record_task_03)
     error = rtFree(devPtr);
     EXPECT_EQ(error, RT_ERROR_NONE);
 
-    delete engine;
     delete rawDrv;
 }
 
@@ -883,8 +898,9 @@ TEST_F(CloudV2ApiTest, mem_wait_record_task_04)
                     .with(outBoundP(&rtAttributes, sizeof(rtAttributes)), mockcpp::any())
                     .will(returnValue(RT_ERROR_NONE));
 
-    Engine *engine = new AsyncHwtsEngine(nullptr);
-    MOCKER_CPP_VIRTUAL(engine, &Engine::SubmitTaskNormal).stubs().will(returnValue(RT_ERROR_INVALID_VALUE));
+    EnableValueWaitFeatureForTest();
+    MockMemValueSubmitSuccess(rt_ut::UnwrapOrNull<Stream>(stream_));
+    MockMemValueSubmitSuccess(rt_ut::UnwrapOrNull<Stream>(stream));
 
     error = rtsValueWrite(devPtr, 0, 0, stream_);
     EXPECT_EQ(error, RT_ERROR_NONE);
@@ -918,7 +934,6 @@ TEST_F(CloudV2ApiTest, mem_wait_record_task_04)
     error = rtFree(devPtr);
     EXPECT_EQ(error, RT_ERROR_NONE);
 
-    delete engine;
     delete rawDrv;
 }
 
@@ -945,8 +960,8 @@ TEST_F(CloudV2ApiTest, mem_wait_record_task_05)
                     .with(outBoundP(&rtAttributes, sizeof(rtAttributes)), mockcpp::any())
                     .will(returnValue(RT_ERROR_NONE));
 
-    Engine *engine = new AsyncHwtsEngine(nullptr);
-    MOCKER_CPP_VIRTUAL(engine, &Engine::SubmitTaskNormal).stubs().will(returnValue(RT_ERROR_INVALID_VALUE));
+    EnableValueWaitFeatureForTest();
+    MockMemValueSubmitSuccess(Runtime::Instance()->CurrentContext()->DefaultStream_());
 
     error = rtsValueWrite(devPtr, 0, 0, nullptr);
     EXPECT_EQ(error, RT_ERROR_NONE);
@@ -959,7 +974,6 @@ TEST_F(CloudV2ApiTest, mem_wait_record_task_05)
     error = rtFree(devPtr);
     EXPECT_EQ(error, RT_ERROR_NONE);
 
-    delete engine;
     delete rawDrv;
 }
 

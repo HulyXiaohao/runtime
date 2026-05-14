@@ -27,9 +27,6 @@ namespace runtime {
         const rtMemcpyKind_t kind, Stream * const stm, uint64_t * const realSize,
         const std::shared_ptr<void> &guardMem = nullptr, const rtTaskCfgInfo_t * const cfgInfo = nullptr,
         const rtD2DAddrCfgInfo_t * const addrCfg = nullptr);
-    rtError_t MemcpyReduceAsync(void * const dst, const void * const src, const uint64_t cpySize,
-        const rtRecudeKind_t kind, const rtDataType_t type, Stream * const stm,
-        const rtTaskCfgInfo_t * const cfgInfo = nullptr);
     rtError_t MemSetAsync(Stream * const stm, void * const ptr, const uint64_t destMax,
                           const uint32_t fillVal, const uint64_t fillCount);
 }  // namespace runtime
