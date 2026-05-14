@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
@@ -490,4 +490,36 @@ TEST_F(NotifyTest, CheckIpcNotifyDevId)
         .with(mockcpp::any(), outBoundP(&phyId, sizeof(uint32_t)))
         .will(returnValue(DRV_ERROR_NONE));
     EXPECT_NE(notify.CheckIpcNotifyDevId(), RT_ERROR_NONE);
+}
+
+TEST_F(NotifyTest, RevisedWait_EventPtrCanBeNull)
+{
+    rtError_t error;
+    int32_t device_id = 0;
+    uint32_t tsId = 0;
+
+    MOCKER(halResourceIdAlloc)
+             .stubs()
+             .will(invoke(testRevisedNotifyIdAlloc));
+
+    RefObject<Context*> *refObject = NULL;
+    refObject = (RefObject<Context*> *)((Runtime *)Runtime::Instance())->PrimaryContextRetain(0);
+    Context *ctx = refObject->GetVal();
+    EXPECT_NE(ctx, (Context*)NULL);
+
+    NpuDriver *driver = (NpuDriver *)((Device *)ctx->Device_())->Driver_();
+    driver->chipType_ = CHIP_CLOUD;
+    Notify *notify = new Notify(device_id, tsId);
+    notify->Setup();
+    EXPECT_EQ(notify->GetNotifyId(), 32769);
+
+    Stream *stream = (Stream *)ctx->DefaultStream_();
+
+    error = notify->RevisedWait(stream, 0);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+
+    delete notify;
+
+    (void)((Runtime *)Runtime::Instance())->PrimaryContextRelease(0);
+    driver->chipType_ = CHIP_CLOUD;
 }

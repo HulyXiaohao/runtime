@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
@@ -3376,4 +3376,68 @@ TEST_F(TaskTest, MemcpyAsyncTaskPrepare_HostMemAllocFailed)
     
     rtError_t error = MemcpyAsyncTaskPrepare(&task, &hostAddr);
     EXPECT_EQ(error, RT_ERROR_DRV_MEMORY);
+}
+
+// EventResetTaskInit中的eventPtr参数可以传空指针，内部不做空指针校验
+TEST_F(TaskTest, EventResetTaskInit_WithNullEventPtr)
+{
+    TaskInfo task = {};
+    InitByStream(&task, stream_);
+
+    rtError_t error = EventResetTaskInit(&task, nullptr, false, -1);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(task.type, TS_TASK_TYPE_EVENT_RESET);
+    EXPECT_EQ(task.u.eventResetTaskInfo.event, nullptr);
+    EXPECT_EQ(task.u.eventResetTaskInfo.eventid, -1);
+    EXPECT_EQ(task.u.eventResetTaskInfo.isNotify, false);
+
+    TaskUnInitProc(&task);
+}
+
+TEST_F(TaskTest, EventResetTaskInit_WithValidEventPtr)
+{
+    TaskInfo task = {};
+    InitByStream(&task, stream_);
+
+    rtError_t error = EventResetTaskInit(&task, event_, false, 1);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(task.type, TS_TASK_TYPE_EVENT_RESET);
+    EXPECT_EQ(task.u.eventResetTaskInfo.event, event_);
+    EXPECT_EQ(task.u.eventResetTaskInfo.eventid, 1);
+    EXPECT_EQ(task.u.eventResetTaskInfo.isNotify, false);
+
+    TaskUnInitProc(&task);
+}
+
+// EventWaitTaskInit中的eventRec参数可以传空指针，内部不做空指针校验
+TEST_F(TaskTest, EventWaitTaskInit_WithNullEventPtr)
+{
+    TaskInfo task = {};
+    InitByStream(&task, stream_);
+
+    rtError_t error = EventWaitTaskInit(&task, nullptr, 0, 0, 0);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(task.type, TS_TASK_TYPE_STREAM_WAIT_EVENT);
+    EXPECT_EQ(task.u.eventWaitTaskInfo.event, nullptr);
+    EXPECT_EQ(task.u.eventWaitTaskInfo.eventId, 0);
+    EXPECT_EQ(task.u.eventWaitTaskInfo.timeout, 0);
+    EXPECT_EQ(task.u.eventWaitTaskInfo.eventWaitFlag, 0);
+
+    TaskUnInitProc(&task);
+}
+
+TEST_F(TaskTest, EventWaitTaskInit_WithValidEventPtr)
+{
+    TaskInfo task = {};
+    InitByStream(&task, stream_);
+
+    rtError_t error = EventWaitTaskInit(&task, event_, 1, 100, 1);
+    EXPECT_EQ(error, RT_ERROR_NONE);
+    EXPECT_EQ(task.type, TS_TASK_TYPE_STREAM_WAIT_EVENT);
+    EXPECT_EQ(task.u.eventWaitTaskInfo.event, event_);
+    EXPECT_EQ(task.u.eventWaitTaskInfo.eventId, 1);
+    EXPECT_EQ(task.u.eventWaitTaskInfo.timeout, 100);
+    EXPECT_EQ(task.u.eventWaitTaskInfo.eventWaitFlag, 1);
+
+    TaskUnInitProc(&task);
 }
