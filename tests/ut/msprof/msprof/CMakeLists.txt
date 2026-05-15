@@ -179,6 +179,7 @@ set(profilerSrcFile
     ../common/test/nano_json_test.cpp
     ../common/test/argparse_utest.cpp
     test/prof_acl_core_utest.cpp
+    test/mstx_utest.cpp
     ${profilerSrcList}
 )
 
