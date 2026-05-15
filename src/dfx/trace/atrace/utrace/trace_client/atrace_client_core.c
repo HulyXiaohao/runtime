@@ -172,7 +172,7 @@ void AtraceClientStop(int32_t devId)
         return;
     }
 
-    AtraceThreadRelease(devId, AtraceClientSendEnd, false);
+    AtraceThreadRelease(devId, AtraceClientSendEnd, true);
     ADIAG_RUN_INF("stop to receive device[%d] trace log.", devId);
 }
 

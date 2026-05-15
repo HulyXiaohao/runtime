@@ -117,6 +117,11 @@ FUNC_END:
  */
 STATIC void DlogReportSendEndMsg(int32_t devId)
 {
+    if (g_plogClient == NULL) {
+        DlogReportUnLock();
+        SELF_LOG_WARN("plog client is null, skip send end msg, devId=%d.", devId);
+        return;
+    }
     uintptr_t session = 0;
     DlogReportLock();
     int32_t ret = DrvSessionInit((HDC_CLIENT)g_plogClient, (HDC_SESSION *)&session, devId);
@@ -133,6 +138,11 @@ STATIC void DlogReportSendEndMsg(int32_t devId)
 STATIC LogStatus DlogReportSendStartMsg(int32_t devId, uintptr_t *session)
 {
     DlogReportLock();
+    if (g_plogClient == NULL) {
+        DlogReportUnLock();
+        SELF_LOG_WARN("plog client is null, skip send start msg, devId=%d.", devId);
+        return LOG_FAILURE;
+    }
     int32_t ret = DrvSessionInit((HDC_CLIENT)g_plogClient, (HDC_SESSION *)session, devId);
     DlogReportUnLock();
     ONE_ACT_ERR_LOG(ret != 0, return LOG_FAILURE, "create session failed, ret=%d, devId=%d.", ret, devId);
@@ -316,7 +326,7 @@ void DlogReportStopInner(int32_t devId)
         return;
     }
 
-    PlogThreadRelease(devId, DlogReportSendEndMsg, false);
+    PlogThreadRelease(devId, DlogReportSendEndMsg, true);
     SELF_LOG_INFO("stop to recv device log, devId=%d.", devId);
 }
 
