@@ -40,7 +40,7 @@ public:
     void RestoreAiCpuKernelInfo(void) override;
 
     // stars ArgManager 统一流程
-    rtError_t AllocNoCopyPtr(const void* hostArgs, ArgLoaderResult* result) override;
+    rtError_t AllocNoCopyPtr(void* hostArgs, ArgLoaderResult* result) override;
     rtError_t AllocCopyPtrWithSpecificPolicy(uint32_t size, LoadPolicy policy, ArgLoaderResult* result) override;
     H2DCopyMgr *GetPcieBarAllocator(void)
     {
@@ -104,9 +104,9 @@ private:
     H2DCopyMgr* SelectAllocator(uint32_t size, LoadPolicy policy) const;
     H2DCopyMgr* SelectPcieFirstAllocator(uint32_t size) const;
     rtError_t CheckPolicyPreCondition(uint32_t size, LoadPolicy policy) const;
-    bool NeedPcieRollback(LoadPolicy policy, H2DCopyMgr* allocator) const;
+    bool NeedPcieRollback(LoadPolicy policy, const H2DCopyMgr* allocator) const;
     H2DCopyMgr* SelectFallbackAllocator(uint32_t size) const;
-    uint32_t GetEntrySize(H2DCopyMgr* allocator, uint32_t argsSize, bool isRandom) const;
+    uint32_t GetEntrySize(const H2DCopyMgr* allocator, uint32_t argsSize, bool isRandom) const;
 };
 }  // namespace runtime
 }  // namespace cce

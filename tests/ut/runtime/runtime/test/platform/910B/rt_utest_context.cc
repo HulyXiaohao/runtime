@@ -563,9 +563,9 @@ public:
         return true;
     }
 
-    rtError_t AllocNoCopyPtr(const void* hostArgs, ArgLoaderResult* result) override
+    rtError_t AllocNoCopyPtr(void* hostArgs, ArgLoaderResult* result) override
     {
-        result->kerArgs = const_cast<void*>(hostArgs);
+        result->kerArgs = hostArgs;
         return RT_ERROR_NONE;
     }
 

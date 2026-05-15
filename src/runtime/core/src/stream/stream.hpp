@@ -208,7 +208,7 @@ public:
     template <typename T>
     rtError_t LoadArgsInfo(
         const T* argsInfo, const bool useArgPool, StarsArgLoaderResult* const result,
-        const LoadPolicy policy = LoadPolicy::LP_GENERIC)
+        const LoadPolicy policy = LoadPolicy::LP_GENERIC) const
     {
         if (argManage_ != nullptr) {
             return argManage_->LoadArgs(argsInfo, useArgPool, result, policy);

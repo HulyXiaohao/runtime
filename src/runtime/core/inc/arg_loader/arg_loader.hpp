@@ -125,7 +125,7 @@ public:
 
     // ArgManager 统一流程：no-copy 时分配 Handle（freeArgs=false），按历史行为填充字段
     // 默认返回 FEATURE_NOT_SUPPORT，只有 UmaArgLoader override 提供实际实现
-    virtual rtError_t AllocNoCopyPtr(const void* hostArgs, ArgLoaderResult* result)
+    virtual rtError_t AllocNoCopyPtr(void* hostArgs, ArgLoaderResult* result)
     {
         UNUSED(hostArgs);
         UNUSED(result);

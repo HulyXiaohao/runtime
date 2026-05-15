@@ -748,14 +748,14 @@ rtError_t UmaArgLoader::Release(void * const argHandle)
     return error;
 }
 
-rtError_t UmaArgLoader::AllocNoCopyPtr(const void* hostArgs, ArgLoaderResult* result)
+rtError_t UmaArgLoader::AllocNoCopyPtr(void* hostArgs, ArgLoaderResult* result)
 {
     Handle* argHandle = static_cast<Handle*>(handleAllocator_->AllocItem());
     NULL_PTR_RETURN(argHandle, RT_ERROR_MEMORY_ALLOCATION);
-    argHandle->kerArgs = const_cast<void*>(hostArgs);
+    argHandle->kerArgs = hostArgs;
     argHandle->freeArgs = false;
     argHandle->argsAlloc = argAllocator_;
-    result->kerArgs = const_cast<void*>(hostArgs);
+    result->kerArgs = hostArgs;
     result->handle = static_cast<void*>(argHandle);
     result->allocatedEntrySize = 0U;
     return RT_ERROR_NONE;
@@ -809,7 +809,7 @@ H2DCopyMgr* UmaArgLoader::SelectAllocator(uint32_t size, LoadPolicy policy) cons
     }
 }
 
-bool UmaArgLoader::NeedPcieRollback(LoadPolicy policy, H2DCopyMgr* allocator) const
+bool UmaArgLoader::NeedPcieRollback(LoadPolicy policy, const H2DCopyMgr* allocator) const
 {
     return (policy == LoadPolicy::LP_NO_MIX || policy == LoadPolicy::LP_CPU_KRN_EX) &&
            (allocator == argPcieBarAllocator_) &&
@@ -824,7 +824,7 @@ H2DCopyMgr* UmaArgLoader::SelectFallbackAllocator(uint32_t size) const
     return argAllocator_;
 }
 
-uint32_t UmaArgLoader::GetEntrySize(H2DCopyMgr* allocator, uint32_t argsSize, bool isRandom) const
+uint32_t UmaArgLoader::GetEntrySize(const H2DCopyMgr* allocator, uint32_t argsSize, bool isRandom) const
 {
     if (isRandom) {
         return argsSize;

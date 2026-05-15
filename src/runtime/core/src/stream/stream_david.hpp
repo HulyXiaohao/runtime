@@ -78,7 +78,7 @@ public:
         return argManage_;
     }
     rtError_t LoadArgsFromArray(
-        const bool useArgPool, const Kernel* kernel, void** argsArray, StarsArgLoaderResult* result)
+        const bool useArgPool, const Kernel* kernel, void** argsArray, StarsArgLoaderResult* result) const
     {
         if (argManage_ != nullptr) {
             return argManage_->LoadArgsFromArray(useArgPool, kernel, argsArray, result);
