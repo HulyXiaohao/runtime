@@ -10,6 +10,7 @@
 #include "capture_model_utils.hpp"
 #include "inner_thread_local.hpp"
 #include "raw_device.hpp"
+#include "context.hpp"
 
 namespace cce {
 namespace runtime {
@@ -175,6 +176,41 @@ rtError_t CheckCaptureModelForUpdate(const Stream* stm) {
         }
     }
     return RT_ERROR_NONE;
+}
+
+static void ReportCaptureModeError(const Context* ctx, const char* funcName)
+{
+    const rtStreamCaptureMode threadCaptureMode = InnerThreadLocalContainer::GetThreadCaptureMode();
+    const rtStreamCaptureMode exchangeCaptureMode = InnerThreadLocalContainer::GetThreadExchangeCaptureMode();
+    const rtStreamCaptureMode contextCaptureMode = ctx->GetContextCaptureMode();
+    const uint32_t threadId = PidTidFetcher::GetCurrentTid();
+    
+    if (threadCaptureMode == RT_STREAM_CAPTURE_MODE_RELAXED) {
+        RT_LOG_OUTER_MSG_IMPL(ErrorCode::EE1016, funcName,
+            "Other threads of the current context are in the capture state. "
+            "As a result, the current operation cannot be performed on thread " + std::to_string(threadId) + ". "
+            "To perform this operation in the current thread, call aclmdlRICaptureThreadExchangeMode to change the capture mode of the current thread. "
+            "The mode set using the aclmdlRICaptureBegin API is " + std::to_string(static_cast<int32_t>(contextCaptureMode)) + ", "
+            "the capture mode of the current thread is " + std::to_string(static_cast<int32_t>(threadCaptureMode)) + ", "
+            "and the mode set using the aclmdlRICaptureThreadExchangeMode API is " + std::to_string(static_cast<int32_t>(exchangeCaptureMode)));
+    } else {
+        RT_LOG_OUTER_MSG_IMPL(ErrorCode::EE1016, funcName,
+            "The current thread " + std::to_string(threadId) + " is in the capture state and the current operation cannot be performed. "
+            "Check whether the mode set by the aclmdlRICaptureBegin API supports the current operation. "
+            "This operation is supported only in the RELAXED mode. "
+            "The mode set using the aclmdlRICaptureBegin API is " + std::to_string(static_cast<int32_t>(contextCaptureMode)) + ", "
+            "the capture mode of the current thread is " + std::to_string(static_cast<int32_t>(threadCaptureMode)) + ", "
+            "and the mode set using the aclmdlRICaptureThreadExchangeMode API is " + std::to_string(static_cast<int32_t>(exchangeCaptureMode)));
+    }
+}
+
+bool CheckCaptureModeSupport(const Context* ctx, const char* funcName)
+{
+    if (!ctx->IsCaptureModeSupport()) {
+        ReportCaptureModeError(ctx, funcName);
+        return false;
+    }
+    return true;
 }
 
 } // namespace runtime
