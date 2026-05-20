@@ -5,7 +5,7 @@
 - [2026/4] 支持Ascend 950PR/Ascend 950DT芯片。持续增强AclGraph功能，优化文档结构，提升开发者体验。
 - [2025/12] runtime项目首次上线。
 
-## 概述
+## 概述123123123
 
 本仓提供CANN运行时组件和维测功能组件。
 - Runtime组件：提供Ascend NPU运行时用户编程接口和运行时核心实现，包括设备管理、流管理、Event管理、内存管理、任务调度等功能。 
@@ -16,7 +16,7 @@
 
 ## 版本配套
 
-本项目源码会跟随CANN软件版本发布，关于CANN软件版本与本项目标签的对应关系请参阅[release仓库](https://gitcode.com/cann/release-management)中的相应版本说明。
+本项目源码会跟随CANN软件版本发布，关于CANN软件版本与本项目标签的对应关系请参阅[release仓库](https://gitcode.com/cann/release-management)中的相应版本说明。123123
 请注意，为确保您的源码定制开发顺利进行，请选择配套的CANN版本与Gitcode标签源码，使用master分支可能存在版本不匹配的风险。
 
 ## 目录结构
@@ -26,13 +26,13 @@
   ```
   ├── cmake                                          # 工程编译目录
   ├── docs                                           # 文档介绍
-  ├── example                                        # 基于acl接口开发的样例代码
+  ├── example                                        # 基于acl接口开发的样例代码12321
   ├── include                                        # 3.1包整体对外发布的头文件
   |   ├── dfx                                        # dfx相关头文件  
   |   ├── driver                                     # 驱动相关头文件
   |   ├── external                                   # 本仓对外提供的头文件
   |   ......
-  ├── pkg_inc                                        # 仓间管控相关头文件 
+  ├── pkg_inc                                        # 仓间管控相关头文件 123
   ├── scripts                                        # 辅助构建相关文件
   ├── src                                            # 所有3.1包内各模块的源代码
   |   ├── acl                                        # acl对外api存放目录  
@@ -47,7 +47,7 @@
   |   ......
   ├── stub                                           # 打桩相关目录
   ├── tests                                          # UT用例
-  ......
+  ......123123213
   ├── CMakeLists.txt                                 # 构建编译配置文件
   ├── build.sh                                       # 项目工程编译脚本
   ```
